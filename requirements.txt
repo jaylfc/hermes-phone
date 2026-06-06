@@ -1,8 +1,19 @@
 flask>=3.0
 flask-sock>=0.7
 twilio>=9.0
-deepgram-sdk>=4.0
 openai>=1.50
 requests>=2.31
 audioop-lts>=0.2
 rumps>=0.4
+
+# Optional: Cloud STT (fallback if local not available)
+# deepgram-sdk>=4.0
+
+# Optional: Local voice (Apple Silicon MLX)
+# Install with: pip install mlx-whisper mlx-audio
+# Or run: python local_voice.py --install
+# mlx-whisper
+# mlx-audio
+
+# Optional: Cloud TTS fallback (free, needs internet)
+# edge-tts

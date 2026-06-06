@@ -103,9 +103,28 @@ elif OPENAI_KEY:
     llm_base_url = OPENAI_BASE_URL
     llm_api_key = OPENAI_KEY
 
-# Deepgram client
+# ═══════════════════════════════════════════════════════════════════
+# Local Voice Engine (MLX on Apple Silicon)
+# ═══════════════════════════════════════════════════════════════════
+
+USE_LOCAL_VOICE = os.environ.get("USE_LOCAL_VOICE", "auto").lower()
+
+voice_engine = None
+if USE_LOCAL_VOICE in ("auto", "true", "1"):
+    try:
+        from local_voice import VoiceEngine
+        prefer_local = USE_LOCAL_VOICE != "false"
+        voice_engine = VoiceEngine(prefer_local=prefer_local)
+        print(f"  Voice: {voice_engine.mode}")
+    except Exception as e:
+        if USE_LOCAL_VOICE == "true":
+            print(f"  ❌ Local voice failed: {e}")
+        else:
+            print(f"  ℹ️ Local voice not available, using cloud TTS")
+
+# Deepgram client (fallback STT if local not available)
 dg_client = None
-if DEEPGRAM_KEY:
+if DEEPGRAM_KEY and (not voice_engine or not voice_engine.stt):
     try:
         from deepgram import DeepgramClient
         dg_client = DeepgramClient(api_key=DEEPGRAM_KEY)
@@ -190,8 +209,14 @@ def get_llm_response(call_sid, user_text):
 # ═══════════════════════════════════════════════════════════════════
 
 def synthesize_speech(text):
-    """Convert text to audio using the configured TTS provider."""
-    # Try MiMo TTS first (if using Xiaomi)
+    """Convert text to audio using the best available TTS."""
+    # Try local MLX TTS first (free, fast, offline)
+    if voice_engine and voice_engine.tts:
+        audio = voice_engine.speak(text)
+        if audio:
+            return audio
+
+    # Try MiMo TTS (if using Xiaomi)
     if LLM_PROVIDER == "xiaomi" and llm_client:
         try:
             resp = llm_client.chat.completions.create(
@@ -475,8 +500,16 @@ def _process_voicemail(recording_sid, recording_url, caller, duration, transcrip
         audio_path = AUDIO_DIR / f"{recording_sid}.wav"
         audio_path.write_bytes(r.content)
 
-        # Transcribe with Deepgram if no Twilio transcript
+        # Transcribe with local STT first, then Deepgram fallback
         transcript = transcription_text
+        if not transcript and voice_engine and voice_engine.stt:
+            try:
+                transcript = voice_engine.transcribe(str(audio_path))
+                if transcript:
+                    print(f"📝 Local STT transcript: {transcript[:80]}...")
+            except Exception as e:
+                print(f"⚠️ Local STT failed: {e}")
+
         if not transcript and dg_client:
             try:
                 payload = {"buffer": r.content}

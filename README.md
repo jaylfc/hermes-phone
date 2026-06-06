@@ -178,3 +178,39 @@ MIT — see [LICENSE](LICENSE)
 ---
 
 **Made by [JAN Labs](https://janlabs.co.uk)**
+
+## 🍎 Local Mode (Apple Silicon)
+
+Hermes Phone can run **100% offline** on Apple Silicon Macs using MLX-optimized models:
+
+| Component | Model | Size | Speed |
+|-----------|-------|------|-------|
+| **STT** | mlx-whisper (large-v3-turbo) | ~1.6GB | Real-time |
+| **TTS** | mlx-audio (Kokoro-82M 4-bit) | ~50MB | 2-3x real-time |
+| **LLM** | Any OpenAI-compatible (Ollama, vLLM) | varies | varies |
+
+### Enable local mode
+
+```bash
+# In .env:
+USE_LOCAL_VOICE=auto  # auto-detect, fall back to cloud
+
+# Or install manually:
+pip install mlx-whisper mlx-audio
+
+# Models download automatically on first use
+```
+
+### Fully offline setup
+
+```bash
+# STT + TTS: local MLX
+USE_LOCAL_VOICE=true
+
+# LLM: local via Ollama
+OPENAI_API_KEY=ollama
+OPENAI_BASE_URL=http://localhost:11434/v1
+LLM_MODEL=llama3
+```
+
+Zero API costs. Zero cloud dependency. Works on a plane.
