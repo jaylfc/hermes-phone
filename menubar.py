@@ -198,18 +198,16 @@ class PhoneMenuBar(rumps.App):
 
     def open_settings(self, _):
         """Open native macOS settings window."""
-        def _run():
-            try:
-                from native_settings import open_settings as _open_native
-                _open_native(
-                    api_url="http://localhost:5051",
-                    token=DASHBOARD_TOKEN,
-                )
-            except Exception as e:
-                print(f"Native settings error: {e}")
-                # Fallback to browser with auto-auth
-                webbrowser.open(f"http://localhost:5051/settings?token={DASHBOARD_TOKEN}")
-        threading.Thread(target=_run, daemon=True).start()
+        try:
+            from native_settings import open_settings as _open_native
+            _open_native(
+                api_url="http://localhost:5051",
+                token=DASHBOARD_TOKEN,
+            )
+        except Exception as e:
+            print(f"Native settings error: {e}")
+            # Fallback to browser with auto-auth
+            webbrowser.open(f"http://localhost:5051/?token={DASHBOARD_TOKEN}")
 
     def open_dashboard(self, _):
         webbrowser.open(f"http://localhost:5051/?token={DASHBOARD_TOKEN}")
