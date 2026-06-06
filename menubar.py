@@ -654,30 +654,52 @@ class PhoneMenuBar(rumps.App):
                 rumps.notification("Hermes Phone", "", f"Call failed: {e}")
 
     def open_settings(self, _):
-        """Open native settings panel in pywebview."""
+        """Open settings — try native window, fall back to browser."""
         def run_window():
             try:
-                import webview
-                window = webview.create_window(
-                    "Hermes Phone Settings",
-                    html=SETTINGS_HTML,
-                    js_api=self.settings_api,
-                    width=700,
-                    height=800,
-                    resizable=True,
-                    min_size=(500, 600),
+                import objc
+                from AppKit import (NSWindow, NSApplication, NSMakeRect,
+                    NSBackingStoreBuffered, NSView, NSButton, NSTextField,
+                    NSBezelStyleRounded, NSAlertFirstButtonReturn)
+                from WebKit import WKWebView, WKWebViewConfiguration, WKUserContentController
+                from Foundation import NSURL, NSMutableURLRequest
+                
+                # Create window
+                window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
+                    NSMakeRect(0, 0, 700, 800),
+                    0xf | 0x1,  # Titled + Closable
+                    NSBackingStoreBuffered, False
                 )
-                self.settings_api.window = window
-                webview.start()
+                window.setTitle_("Hermes Phone Settings")
+                window.center()
+                
+                # Create WebView
+                config = WKWebViewConfiguration.alloc().init()
+                webview = WKWebView.alloc().initWithFrame_configuration_(
+                    NSMakeRect(0, 0, 700, 800), config
+                )
+                
+                # Load dashboard URL with auto-auth token
+                auth_url = f"http://localhost:5051/?token={DASHBOARD_TOKEN}"
+                url = NSURL.URLWithString_(auth_url)
+                request = NSMutableURLRequest.requestWithURL_(url)
+                webview.loadRequest_(request)
+                
+                # Add webview to window
+                window.contentView().addSubview_(webview)
+                webview.setFrame_(window.contentView().bounds())
+                window.makeKeyAndOrderFront_(None)
+                
             except Exception as e:
-                print(f"Settings window error: {e}")
-                # Fallback: open web dashboard
+                print(f"Native window error: {e}")
+                # Fallback: open browser with auth token
                 import webbrowser
-                webbrowser.open("http://localhost:5051")
+                webbrowser.open(f"http://localhost:5051/?token={DASHBOARD_TOKEN}")
+        
         threading.Thread(target=run_window, daemon=True).start()
 
     def open_dashboard(self, _):
-        webbrowser.open(f"http://localhost:{5051}")
+        webbrowser.open(f"http://localhost:{5051}?token={DASHBOARD_TOKEN}")
 
     def quit_app(self, _):
         rumps.quit_application()

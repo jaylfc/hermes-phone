@@ -219,11 +219,20 @@ def require_dashboard_auth():
     path = request.path
     if path in ("/login", "/logout", "/health"):
         return None
+    # Check cookie
     cookie = request.cookies.get(AUTH_COOKIE, "")
     if check_auth(cookie):
         return None
+    # Check Authorization header
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer ") and check_auth(auth[7:]):
+        return None
+    # Check token query param (for auto-login from menubar)
+    token = request.args.get("token", "")
+    if token and check_auth(token):
+        # Set cookie for future requests
+        resp = None  # Let the request through, cookie set on response
+        request._auto_auth_token = token
         return None
     if path.startswith("/api/"):
         return jsonify({"error": "Unauthorized"}), 401
@@ -1104,6 +1113,15 @@ def export_transcripts():
     return Response("\n".join(lines), mimetype="text/plain",
                     headers={"Content-Disposition": "attachment; filename=hermes-phone-transcripts.txt"})
 
+
+
+@dashboard_app.after_request
+def set_auth_cookie_from_token(response):
+    """Set auth cookie when token query param is used."""
+    token = getattr(request, '_auto_auth_token', None)
+    if token:
+        response.set_cookie(AUTH_COOKIE, token, httponly=True, samesite="Lax", max_age=86400 * 30)
+    return response
 # ═══════════════════════════════════════════════════════════════════
 # Dashboard HTML (served from port 5051)
 # ═══════════════════════════════════════════════════════════════════
