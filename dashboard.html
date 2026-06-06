@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hermes Phone</title>
+<style>
+/* ═══════════════════════════════════════════════════
+   Neo Kinpaku Design System — Lacquer + Gold
+   ═══════════════════════════════════════════════════ */
+:root {
+  --lacquer: #0c0c0e;
+  --surface: #141418;
+  --surface-raised: #1a1a20;
+  --surface-overlay: #222228;
+  --gold: #c9a84c;
+  --gold-dim: #8a7235;
+  --gold-bright: #e4c65a;
+  --champagne: #e8dcc8;
+  --text: #d4d0c8;
+  --text-dim: #7a7670;
+  --text-ghost: #4a4844;
+  --danger: #c44040;
+  --danger-dim: #8a2c2c;
+  --success: #3a8a4a;
+  --success-dim: #2a6a38;
+  --border: #2a2a30;
+  --border-gold: rgba(201, 168, 76, 0.2);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--sans);
+  background: var(--lacquer);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Layout ─── */
+.shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* ─── Header ─── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--champagne);
+  letter-spacing: -0.02em;
+}
+
+.header h1 span {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-ghost);
+}
+
+.status-dot.live {
+  background: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+}
+
+/* ─── Stats Row ─── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--champagne);
+  font-family: var(--mono);
+}
+
+.stat-sub {
+  font-size: 11px;
+  color: var(--text-ghost);
+  margin-top: 2px;
+}
+
+/* ─── Section ─── */
+.section {
+  margin-bottom: 32px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--champagne);
+  letter-spacing: -0.01em;
+}
+
+.section-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Buttons ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: var(--surface-raised);
+  border-color: var(--border-gold);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  border-color: var(--gold);
+  color: #0c0c0e;
+  font-weight: 600;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+}
+
+.btn-danger {
+  border-color: var(--danger-dim);
+  color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: var(--danger-dim);
+  color: #fff;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+/* ─── Voicemail List ─── */
+.vm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vm-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+}
+
+.vm-item:hover {
+  border-color: var(--border-gold);
+}
+
+.vm-item.unread {
+  border-left: 3px solid var(--gold);
+}
+
+.vm-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.vm-info {
+  min-width: 0;
+}
+
+.vm-caller {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--champagne);
+  margin-bottom: 2px;
+}
+
+.vm-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  gap: 10px;
+}
+
+.vm-transcript {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.vm-audio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vm-audio audio {
+  height: 32px;
+  width: 200px;
+}
+
+.vm-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ─── Call Form ─── */
+.call-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.call-row {
+  display: flex;
+  gap: 10px;
+}
+
+.input {
+  flex: 1;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--lacquer);
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--gold-dim);
+}
+
+.input::placeholder {
+  color: var(--text-ghost);
+}
+
+/* ─── Empty State ─── */
+.empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-dim);
+}
+
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 13px;
+}
+
+/* ─── Toast ─── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1000;
+  animation: slideUp 0.2s ease;
+  border: 1px solid;
+}
+
+.toast.success {
+  background: var(--success-dim);
+  color: #a7f3d0;
+  border-color: var(--success);
+}
+
+.toast.error {
+  background: var(--danger-dim);
+  color: #fca5a5;
+  border-color: var(--danger);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Nav ─── */
+.nav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.nav a {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.nav a:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.nav a.active {
+  color: var(--gold);
+  background: var(--surface);
+  border: 1px solid var(--border-gold);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .vm-item { grid-template-columns: auto 1fr auto; }
+  .vm-audio { display: none; }
+  .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">📞</div>
+      <h1>Hermes Phone <span>Dashboard</span></h1>
+    </div>
+    <div id="status" class="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Connecting...</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Voicemails</div>
+      <div class="stat-value" id="stat-vm">-</div>
+      <div class="stat-sub" id="stat-unread"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">AI Model</div>
+      <div class="stat-value" id="stat-model" style="font-size:14px">-</div>
+      <div class="stat-sub" id="stat-provider"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Voice Engine</div>
+      <div class="stat-value" id="stat-voice" style="font-size:14px">-</div>
+      <div class="stat-sub" id="stat-voice-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Uptime</div>
+      <div class="stat-value" id="stat-uptime" style="font-size:14px">-</div>
+      <div class="stat-sub" id="stat-port"></div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav">
+    <a href="#" class="active" onclick="showTab('voicemails',this)">Voicemails</a>
+    <a href="#" onclick="showTab('call',this)">Make Call</a>
+    <a href="/export/transcripts" download>Export</a>
+  </div>
+
+  <!-- Voicemails Tab -->
+  <div id="tab-voicemails" class="section">
+    <div class="section-header">
+      <div class="section-title">Voicemails</div>
+      <div class="section-actions">
+        <button class="btn btn-sm" onclick="loadVoicemails()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="vm-list" class="vm-list">
+      <div class="empty">
+        <div class="empty-icon">🎙️</div>
+        <div class="empty-text">Loading voicemails...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Call Tab -->
+  <div id="tab-call" class="section" style="display:none">
+    <div class="section-header">
+      <div class="section-title">Make an Outbound Call</div>
+    </div>
+    <div class="call-form">
+      <div class="call-row">
+        <input type="tel" id="call-number" class="input" placeholder="+44 7xxx xxx xxx">
+        <button class="btn btn-gold" onclick="makeCall()">📞 Call</button>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-ghost)">
+        Your Twilio number will be used as the caller ID.
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Tab -->
+  <div id="tab-export" class="section" style="display:none">
+    <div class="section-header">
+      <div class="section-title">Export Data</div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <a href="/export/zip" class="btn" download>📦 Download All (ZIP)</a>
+      <a href="/export/transcripts" class="btn" download>📝 Transcripts (TXT)</a>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--text-ghost)">
+      ZIP includes all voicemail audio files, metadata, and transcripts.
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+
+function showTab(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+  document.getElementById('tab-' + name).style.display = 'block';
+  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function formatDuration(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+async function loadHealth() {
+  try {
+    const r = await fetch(API + '/health');
+    const d = await r.json();
+    document.getElementById('status-dot').classList.add('live');
+    document.getElementById('status-text').textContent = 'Online';
+
+    const model = d.hermes_model || d.llm_legacy || 'Not configured';
+    document.getElementById('stat-model').textContent = model.split('/').pop();
+    document.getElementById('stat-provider').textContent = model.includes('/') ? model.split('/')[0] : '';
+
+    const voice = d.voice_engine || 'none';
+    document.getElementById('stat-voice').textContent = voice;
+    document.getElementById('stat-voice-sub').textContent = voice.includes('local') ? 'On-device' : 'Cloud';
+
+    const vm = d.voicemails || 0;
+    document.getElementById('stat-vm').textContent = vm;
+
+    document.getElementById('stat-uptime').textContent = 'Active';
+    document.getElementById('stat-port').textContent = 'Port ' + (d.dashboard_port || 5051);
+  } catch {
+    document.getElementById('status-dot').classList.remove('live');
+    document.getElementById('status-text').textContent = 'Offline';
+  }
+}
+
+async function loadVoicemails() {
+  try {
+    const r = await fetch(API + '/voicemails');
+    const vms = await r.json();
+    const list = document.getElementById('vm-list');
+
+    if (!vms.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">🎙️</div><div class="empty-text">No voicemails yet</div></div>';
+      return;
+    }
+
+    // Sort newest first
+    vms.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    const unread = vms.filter(v => !v.read).length;
+    document.getElementById('stat-unread').textContent = unread ? unread + ' unread' : '';
+    document.getElementById('stat-vm').textContent = vms.length;
+
+    list.innerHTML = vms.map(vm => `
+      <div class="vm-item ${vm.read ? '' : 'unread'}">
+        <div class="vm-icon">${vm.read ? '📞' : '🔔'}</div>
+        <div class="vm-info">
+          <div class="vm-caller">${vm.from || 'Unknown'}</div>
+          <div class="vm-meta">
+            <span>${formatTime(vm.time)}</span>
+            <span>${formatDuration(vm.duration || 0)}</span>
+          </div>
+          ${vm.transcript ? `<div class="vm-transcript">${escHtml(vm.transcript)}</div>` : ''}
+        </div>
+        <div class="vm-audio">
+          <audio controls preload="none" src="${API}/voicemails/${vm.sid}/audio"></audio>
+        </div>
+        <div class="vm-actions">
+          <button class="btn btn-sm btn-danger" onclick="deleteVm('${vm.sid}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('vm-list').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Failed to load voicemails</div></div>';
+  }
+}
+
+async function deleteVm(sid) {
+  if (!confirm('Delete this voicemail?')) return;
+  try {
+    await fetch(API + '/voicemails/' + sid, { method: 'DELETE' });
+    toast('Voicemail deleted');
+    loadVoicemails();
+  } catch {
+    toast('Delete failed', 'error');
+  }
+}
+
+async function makeCall() {
+  const number = document.getElementById('call-number').value.trim();
+  if (!number) return toast('Enter a phone number', 'error');
+  try {
+    const r = await fetch(API + '/call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: number })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      toast('Calling ' + number + '...');
+    } else {
+      toast(d.error || 'Call failed', 'error');
+    }
+  } catch {
+    toast('Call failed', 'error');
+  }
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Init
+loadHealth();
+loadVoicemails();
+setInterval(loadHealth, 15000);
+</script>
+</body>
+</html>
