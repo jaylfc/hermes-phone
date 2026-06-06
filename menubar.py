@@ -49,12 +49,15 @@ class HermesPhoneApp(rumps.App):
         self.status_item = rumps.MenuItem("Status: Checking...")
 
         # Build menu
+        self.start_item = rumps.MenuItem("Start Server", callback=self.start_server)
+        self.stop_item = rumps.MenuItem("Stop Server", callback=self.stop_server)
+        self.restart_item = rumps.MenuItem("Restart Server", callback=self.restart_server)
         self.menu = [
             self.status_item,
             None,
-            rumps.MenuItem("Start Server", callback=self.start_server),
-            rumps.MenuItem("Stop Server", callback=self.stop_server),
-            rumps.MenuItem("Restart Server", callback=self.restart_server),
+            self.start_item,
+            self.stop_item,
+            self.restart_item,
             None,
             rumps.MenuItem("Voicemails", callback=self.show_voicemails),
             rumps.MenuItem("Make Call...", callback=self.make_call),
@@ -125,12 +128,21 @@ class HermesPhoneApp(rumps.App):
             m = health_data.get("model", "?") if health_data else "?"
             vm_count = health_data.get("voicemails", 0) if health_data else 0
             self.status_item.title = f"Running ({p}/{m}) — {vm_count} voicemails"
+            self.start_item.set_callback(None)
+            self.stop_item.set_callback(self.stop_server)
+            self.restart_item.set_callback(self.restart_server)
         elif status == "starting":
             icon = "🟡"
             self.status_item.title = "Starting..."
+            self.start_item.set_callback(None)
+            self.stop_item.set_callback(None)
+            self.restart_item.set_callback(None)
         else:
             icon = "🔴"
             self.status_item.title = "Stopped"
+            self.start_item.set_callback(self.start_server)
+            self.stop_item.set_callback(None)
+            self.restart_item.set_callback(None)
         self.title = f"{TITLE} {icon}"
 
     # ── Voicemail management ───────────────────────────────────────
