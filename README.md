@@ -14,7 +14,7 @@ Turn your Mac into an intelligent phone system. Incoming calls get an AI assista
 - **🔒 PIN-Gated Access** — Hidden PIN bypass lets you reach the AI while others get voicemail
 - **🎙️ Voicemail Manager** — Menu bar app shows voicemails with transcripts, playback, delete, and callback
 - **📤 Outbound Calls** — Make AI-powered calls from the menu bar or API
-- **🇬🇧 UK Number Support** — Works with Twilio UK numbers (0330, 020, mobile)
+- **🌍 Works Worldwide** — Any Twilio number (US, UK, EU, AU, and 180+ countries)
 - **🚀 One-Click Install** — `curl -sSL ... | bash` sets up everything
 
 ## 📋 Requirements

@@ -1,12 +1,8 @@
 """
 Hermes Phone — macOS Menu Bar App
 
-Features:
-- Server status (running/stopped)
-- Start/Stop/Restart server
-- Voicemail manager (list, play, delete, callback)
-- Make outbound calls
-- View logs
+Full control center: server, voicemails, calls, settings.
+Everything accessible from the menu bar.
 """
 
 import os
@@ -29,10 +25,27 @@ import rumps
 AGENT_DIR = Path(__file__).parent
 HEALTH_URL = "http://localhost:5050/health"
 VOICEMAILS_URL = "http://localhost:5050/voicemails"
+SETTINGS_URL = "http://localhost:5050/api/settings"
 CHECK_INTERVAL = 10
 SERVICE_LABEL = "com.hermes-phone.server"
 
 TITLE = "📞"
+
+# Available TTS voices
+VOICES = [
+    ("Polly.Amy", "Amy (UK, F)"),
+    ("Polly.Brian", "Brian (UK, M)"),
+    ("Polly.Emma", "Emma (UK, F)"),
+    ("Polly.Joanna", "Joanna (US, F)"),
+    ("Polly.Matthew", "Matthew (US, M)"),
+    ("Polly.Ivy", "Ivy (US, F)"),
+    ("Polly.Justin", "Justin (US, M)"),
+    ("Polly.Kendra", "Kendra (US, F)"),
+    ("Polly.Kimberly", "Kimberly (US, F)"),
+    ("Polly.Salli", "Salli (US, F)"),
+    ("Polly.Nicole", "Nicole (AU, F)"),
+    ("Polly.Russell", "Russell (AU, M)"),
+]
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -44,14 +57,17 @@ class HermesPhoneApp(rumps.App):
         super().__init__(TITLE, quit_button=None)
         self.status = "stopped"
         self.voicemails = []
+        self.settings = {}
 
-        # Status item (non-clickable)
+        # Status item
         self.status_item = rumps.MenuItem("Status: Checking...")
 
-        # Build menu
+        # Server control
         self.start_item = rumps.MenuItem("Start Server", callback=self.start_server)
         self.stop_item = rumps.MenuItem("Stop Server", callback=self.stop_server)
         self.restart_item = rumps.MenuItem("Restart Server", callback=self.restart_server)
+
+        # Build menu
         self.menu = [
             self.status_item,
             None,
@@ -59,11 +75,12 @@ class HermesPhoneApp(rumps.App):
             self.stop_item,
             self.restart_item,
             None,
-            rumps.MenuItem("Voicemails", callback=self.show_voicemails),
-            rumps.MenuItem("Make Call...", callback=self.make_call),
+            rumps.MenuItem("📞 Make Call...", callback=self.make_call),
+            self._build_voicemail_menu(),
+            self._build_settings_menu(),
             None,
-            rumps.MenuItem("Open Web Dashboard", callback=self.open_dashboard),
-            rumps.MenuItem("View Logs", callback=self.view_logs),
+            rumps.MenuItem("🌐 Open Dashboard", callback=self.open_dashboard),
+            rumps.MenuItem("📋 View Logs", callback=self.view_logs),
             None,
             rumps.MenuItem("Quit", callback=self.quit_app),
         ]
@@ -71,6 +88,48 @@ class HermesPhoneApp(rumps.App):
         # Start monitoring
         threading.Thread(target=self._health_loop, daemon=True).start()
         threading.Thread(target=self._voicemail_loop, daemon=True).start()
+        threading.Thread(target=self._settings_loop, daemon=True).start()
+
+    # ── Menu builders ──────────────────────────────────────────────
+
+    def _build_voicemail_menu(self):
+        """Build voicemails submenu."""
+        self.vm_menu = rumps.MenuItem("🎙️ Voicemails")
+        self.vm_menu.add(rumps.MenuItem("No voicemails yet"))
+        return self.vm_menu
+
+    def _build_settings_menu(self):
+        """Build settings submenu."""
+        settings_menu = rumps.MenuItem("⚙️ Settings")
+
+        # Voice
+        voice_menu = rumps.MenuItem("🔊 Voice")
+        for voice_id, voice_name in VOICES:
+            item = rumps.MenuItem(voice_name, callback=self._set_voice)
+            item.voice_id = voice_id
+            voice_menu.add(item)
+        settings_menu.add(voice_menu)
+
+        # Voice engine
+        engine_menu = rumps.MenuItem("🧠 Voice Engine")
+        for mode, label in [("auto", "Auto (local/cloud)"), ("true", "Local Only (MLX)"), ("false", "Cloud Only")]:
+            item = rumps.MenuItem(label, callback=self._set_engine)
+            item.mode = mode
+            engine_menu.add(item)
+        settings_menu.add(engine_menu)
+
+        settings_menu.add(None)  # separator
+
+        # Quick settings
+        settings_menu.add(rumps.MenuItem("✏️ Edit Company Name...", callback=self._edit_company))
+        settings_menu.add(rumps.MenuItem("📧 Edit Email...", callback=self._edit_email))
+        settings_menu.add(rumps.MenuItem("👋 Edit Greeting...", callback=self._edit_greeting))
+        settings_menu.add(rumps.MenuItem("🔑 Change PIN...", callback=self._edit_pin))
+
+        settings_menu.add(None)  # separator
+        settings_menu.add(rumps.MenuItem("🌐 Open Full Settings", callback=self.open_settings))
+
+        return settings_menu
 
     # ── Service control ────────────────────────────────────────────
 
@@ -87,13 +146,11 @@ class HermesPhoneApp(rumps.App):
     def start_server(self, _):
         plist = Path.home() / "Library/LaunchAgents" / f"{SERVICE_LABEL}.plist"
         if not plist.exists():
-            rumps.alert("Server not installed", "Run install.sh first to set up the server.")
+            rumps.alert("Server not installed", "Run install.sh first.")
             return
         ok, _ = self._launchctl("load", "-w", str(plist))
         if ok:
             rumps.notification(TITLE, "", "Server started")
-        else:
-            rumps.notification(TITLE, "", "Failed to start server")
 
     def stop_server(self, _):
         plist = Path.home() / "Library/LaunchAgents" / f"{SERVICE_LABEL}.plist"
@@ -151,6 +208,7 @@ class HermesPhoneApp(rumps.App):
         while True:
             if self.status == "running":
                 self._fetch_voicemails()
+                self._update_voicemail_menu()
             time.sleep(30)
 
     def _fetch_voicemails(self):
@@ -161,21 +219,15 @@ class HermesPhoneApp(rumps.App):
         except:
             pass
 
-    def show_voicemails(self, _):
-        """Show voicemail manager window."""
-        self._fetch_voicemails()
+    def _update_voicemail_menu(self):
+        """Update voicemail submenu with current voicemails."""
+        self.vm_menu.clear()
 
         if not self.voicemails:
-            rumps.alert(
-                title="Voicemails",
-                message="No voicemails yet.",
-                ok="Close",
-            )
+            self.vm_menu.add(rumps.MenuItem("No voicemails"))
             return
 
-        # Build voicemail list
-        vm_list = []
-        for vm in reversed(self.voicemails):  # newest first
+        for vm in reversed(self.voicemails):
             caller = vm.get("from", "Unknown").replace("+", "")
             duration = vm.get("duration", 0)
             transcript = vm.get("transcript", "")
@@ -186,78 +238,216 @@ class HermesPhoneApp(rumps.App):
                 dt = datetime.fromisoformat(time_str)
                 time_display = dt.strftime("%b %d, %H:%M")
             except:
-                time_display = time_str
+                time_display = time_str[:16] if time_str else ""
 
-            # Truncate transcript
+            # Menu item label
+            label = f"📞 {caller} ({duration}s) {time_display}"
+            item = rumps.MenuItem(label)
+            self.vm_menu.add(item)
+
+            # Sub-items for this voicemail
             if transcript:
-                transcript_preview = transcript[:100] + ("..." if len(transcript) > 100 else "")
-            else:
-                transcript_preview = "(no transcript)"
+                transcript_item = rumps.MenuItem(f'📝 "{transcript[:60]}..."')
+                transcript_item.set_callback(None)
+                self.vm_menu.add(transcript_item)
 
-            vm_list.append(
-                f"📞 {caller} — {duration}s — {time_display}\n"
-                f"   {transcript_preview}\n"
-            )
+            if vm.get("audio_path"):
+                play_item = rumps.MenuItem(f"▶️ Play", callback=self._play_voicemail)
+                play_item.vm = vm
+                self.vm_menu.add(play_item)
 
-        message = f"You have {len(self.voicemails)} voicemail(s):\n\n" + "\n".join(vm_list)
+            callback_item = rumps.MenuItem(f"📞 Call Back", callback=self._callback_voicemail)
+            callback_item.vm = vm
+            self.vm_menu.add(callback_item)
 
-        # Show with action buttons
-        response = rumps.alert(
-            title="Voicemail Manager",
-            message=message,
-            ok="Close",
-            other="Play Latest",
-        )
+            delete_item = rumps.MenuItem(f"🗑️ Delete", callback=self._delete_voicemail)
+            delete_item.vm = vm
+            self.vm_menu.add(delete_item)
 
-        # If "Play Latest" clicked
-        if response == 1 and self.voicemails:
-            self._play_voicemail(self.voicemails[-1])
+            self.vm_menu.add(None)  # separator
 
-    def _play_voicemail(self, vm):
-        """Play a voicemail audio file."""
+        # Export options
+        self.vm_menu.add(rumps.MenuItem("📦 Export All (ZIP)", callback=self._export_zip))
+        self.vm_menu.add(rumps.MenuItem("📝 Export Transcripts", callback=self._export_transcripts))
+
+    def _play_voicemail(self, sender):
+        """Play a voicemail."""
+        vm = sender.vm
         audio_path = vm.get("audio_path", "")
         if audio_path and Path(audio_path).exists():
             subprocess.Popen(["afplay", audio_path])
         else:
-            # Try to download from Twilio
-            url = vm.get("url", "")
-            if url:
-                rumps.notification(TITLE, "", "Downloading voicemail...")
-                # Would need Twilio auth here — for now just notify
-                rumps.notification(TITLE, "", "Audio file not cached locally")
+            rumps.notification(TITLE, "", "Audio file not available")
+
+    def _callback_voicemail(self, sender):
+        """Call back the voicemail sender."""
+        vm = sender.vm
+        caller = vm.get("from", "")
+        if caller:
+            self._do_call(caller)
+
+    def _delete_voicemail(self, sender):
+        """Delete a voicemail."""
+        vm = sender.vm
+        sid = vm.get("sid", "")
+        if sid:
+            try:
+                requests.delete(f"{VOICEMAILS_URL}/{sid}", timeout=5)
+                rumps.notification(TITLE, "", "Voicemail deleted")
+                self._fetch_voicemails()
+                self._update_voicemail_menu()
+            except:
+                rumps.notification(TITLE, "", "Failed to delete")
+
+    def _export_zip(self, _):
+        """Open export ZIP in browser."""
+        webbrowser.open("http://localhost:5050/export/zip")
+
+    def _export_transcripts(self, _):
+        """Open export transcripts in browser."""
+        webbrowser.open("http://localhost:5050/export/transcripts")
+
+    # ── Make call ──────────────────────────────────────────────────
 
     def make_call(self, _):
-        """Show dialog to make an outbound call."""
-        # Simple input dialog
+        """Show dialog to make a call."""
         window = rumps.Window(
             message="Enter phone number to call:",
             title="Make Call",
-            default_text="+44",
+            default_text="+",
             ok="Call",
             cancel="Cancel",
             dimensions=(320, 24),
         )
         response = window.run()
         if response.clicked and response.text:
-            to_number = response.text.strip()
-            if to_number:
-                try:
-                    r = requests.post(
-                        "http://localhost:5050/call",
-                        json={"to": to_number},
-                        timeout=10,
-                    )
-                    if r.status_code == 200:
-                        rumps.notification(TITLE, "", f"Calling {to_number}...")
-                    else:
-                        rumps.notification(TITLE, "", f"Call failed: {r.json().get('error', 'unknown')}")
-                except Exception as e:
-                    rumps.notification(TITLE, "", f"Call failed: {e}")
+            self._do_call(response.text.strip())
+
+    def _do_call(self, number):
+        """Make an outbound call."""
+        if not number:
+            return
+        try:
+            r = requests.post(
+                "http://localhost:5050/call",
+                json={"to": number},
+                timeout=10,
+            )
+            if r.status_code == 200:
+                rumps.notification(TITLE, "", f"Calling {number}...")
+            else:
+                rumps.notification(TITLE, "", f"Call failed: {r.json().get('error', 'unknown')}")
+        except Exception as e:
+            rumps.notification(TITLE, "", f"Call failed: {e}")
+
+    # ── Settings management ────────────────────────────────────────
+
+    def _settings_loop(self):
+        """Periodically fetch settings."""
+        while True:
+            if self.status == "running":
+                self._fetch_settings()
+            time.sleep(60)
+
+    def _fetch_settings(self):
+        """Fetch current settings from API."""
+        try:
+            r = requests.get(SETTINGS_URL, timeout=5)
+            if r.status_code == 200:
+                self.settings = r.json()
+        except:
+            pass
+
+    def _save_setting(self, key, value):
+        """Save a single setting."""
+        try:
+            r = requests.post(
+                SETTINGS_URL,
+                json={key: value},
+                timeout=5,
+            )
+            if r.status_code == 200:
+                rumps.notification(TITLE, "", f"{key} updated")
+            else:
+                rumps.notification(TITLE, "", f"Failed to update {key}")
+        except:
+            rumps.notification(TITLE, "", "Server not reachable")
+
+    def _set_voice(self, sender):
+        """Set TTS voice."""
+        self._save_setting("TTS_VOICE", sender.voice_id)
+
+    def _set_engine(self, sender):
+        """Set voice engine mode."""
+        self._save_setting("USE_LOCAL_VOICE", sender.mode)
+
+    def _edit_company(self, _):
+        """Edit company name."""
+        current = self.settings.get("COMPANY_NAME", "")
+        window = rumps.Window(
+            message="Company name:",
+            title="Company Name",
+            default_text=current,
+            ok="Save",
+            cancel="Cancel",
+            dimensions=(320, 24),
+        )
+        response = window.run()
+        if response.clicked and response.text:
+            self._save_setting("COMPANY_NAME", response.text.strip())
+
+    def _edit_email(self, _):
+        """Edit voicemail email."""
+        current = self.settings.get("VOICEMAIL_EMAIL", "")
+        window = rumps.Window(
+            message="Email for voicemail greeting:",
+            title="Voicemail Email",
+            default_text=current,
+            ok="Save",
+            cancel="Cancel",
+            dimensions=(320, 24),
+        )
+        response = window.run()
+        if response.clicked and response.text:
+            self._save_setting("VOICEMAIL_EMAIL", response.text.strip())
+
+    def _edit_greeting(self, _):
+        """Edit voicemail greeting."""
+        current = self.settings.get("VOICEMAIL_GREETING", "")
+        window = rumps.Window(
+            message="Voicemail greeting (leave empty for default):",
+            title="Voicemail Greeting",
+            default_text=current,
+            ok="Save",
+            cancel="Cancel",
+            dimensions=(400, 100),
+        )
+        response = window.run()
+        if response.clicked:
+            self._save_setting("VOICEMAIL_GREETING", response.text.strip())
+
+    def _edit_pin(self, _):
+        """Change voicemail PIN."""
+        current = self.settings.get("VOICEMAIL_PIN", "1234")
+        window = rumps.Window(
+            message="New PIN (callers dial this to reach AI):",
+            title="Change PIN",
+            default_text=current,
+            ok="Save",
+            cancel="Cancel",
+            dimensions=(320, 24),
+        )
+        response = window.run()
+        if response.clicked and response.text:
+            self._save_setting("VOICEMAIL_PIN", response.text.strip())
 
     # ── Other actions ──────────────────────────────────────────────
 
     def open_dashboard(self, _):
-        webbrowser.open("http://localhost:5050/health")
+        webbrowser.open("http://localhost:5050/")
+
+    def open_settings(self, _):
+        webbrowser.open("http://localhost:5050/#settings")
 
     def view_logs(self, _):
         log = AGENT_DIR / "server.log"
