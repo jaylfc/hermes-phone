@@ -1,0 +1,21 @@
+# CodeRabbit configuration for dialtone
+# Install the CodeRabbit GitHub App: https://github.com/apps/coderabbitai
+
+language: en-US
+reviews:
+  auto_review:
+    enabled: true
+    drafts: false
+  profile: assertive
+  path_instructions:
+    - path: "server.py"
+      instructions: "Focus on security, input validation, and error handling. Check for hardcoded secrets."
+    - path: "*.sh"
+      instructions: "Check for shell injection, missing error handling, and portability issues."
+    - path: "*.html"
+      instructions: "Check for XSS vulnerabilities, accessibility, and responsive design."
+  tools:
+    ruff:
+      enabled: true
+    pylint:
+      enabled: false
