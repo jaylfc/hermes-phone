@@ -696,6 +696,24 @@ body {
        ═══════════════════════════════════════════════ -->
   <div class="panel" id="panel-ai">
     <div class="group">
+      <div class="group-title">Agent Backend</div>
+      <div class="field">
+        <label>Agent Backend</label>
+        <select id="f-AGENT_PROVIDER">
+          <option value="">Auto-detect (recommended)</option>
+          <option value="hermes-gateway">Hermes Agent (Gateway API)</option>
+          <option value="openai">OpenAI</option>
+          <option value="xiaomi">Xiaomi MiMo</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="ollama">Ollama (local)</option>
+          <option value="lmstudio">LM Studio (local)</option>
+          <option value="openai-compat">Custom OpenAI-Compatible</option>
+        </select>
+        <div class="hint">Which AI framework handles your phone calls</div>
+      </div>
+    </div>
+
+    <div class="group" id="section-hermes">
       <div class="group-title">Hermes Gateway</div>
       <div class="field">
         <label>Hermes Gateway URL</label>
@@ -728,7 +746,7 @@ body {
       </div>
     </div>
 
-    <div class="group">
+    <div class="group" id="section-legacy-llm">
       <div class="group-title">Legacy LLM (Fallback)</div>
       <div class="field">
         <label>LLM Provider</label>
@@ -779,6 +797,30 @@ body {
             <button class="btn btn-sm btn-danger" onclick="clearField('f-OPENROUTER_API_KEY')">✕</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="group" id="section-custom-compat">
+      <div class="group-title">Custom Endpoint (OpenAI-Compatible)</div>
+      <div class="field">
+        <label>Base URL</label>
+        <input type="text" id="f-LLM_BASE_URL_OVERRIDE" placeholder="https://your-endpoint.com/v1">
+        <div class="hint">Any OpenAI-compatible /v1/chat/completions endpoint</div>
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-LLM_API_KEY_OVERRIDE" placeholder="Enter API key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-LLM_API_KEY_OVERRIDE')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-LLM_API_KEY_OVERRIDE')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Model</label>
+        <input type="text" id="f-LLM_MODEL_OVERRIDE" placeholder="e.g. gpt-4o, llama3, mixtral">
+        <div class="hint">Model name to send in chat completions requests</div>
       </div>
     </div>
 
@@ -907,8 +949,9 @@ const TAB_KEYS = {
   voice: ['STT_PROVIDER','DEEPGRAM_API_KEY','ASSEMBLYAI_API_KEY','GROQ_API_KEY','SPEECHMATICS_API_KEY',
           'TTS_PROVIDER','TTS_VOICE','TTS_LANGUAGE','ELEVENLABS_API_KEY','ELEVENLABS_VOICE_ID',
           'CARTESIA_API_KEY','CARTESIA_VOICE_ID','USE_LOCAL_VOICE'],
-  ai: ['HERMES_GATEWAY_URL','HERMES_GATEWAY_TOKEN','HERMES_MODEL_OVERRIDE','LLM_PROVIDER','LLM_MODEL',
-       'XIAOMI_API_KEY','XIAOMI_BASE_URL','OPENAI_API_KEY','OPENAI_BASE_URL','OPENROUTER_API_KEY',
+  ai: ['AGENT_PROVIDER','HERMES_GATEWAY_URL','HERMES_GATEWAY_TOKEN','HERMES_MODEL_OVERRIDE',
+       'LLM_PROVIDER','LLM_MODEL','XIAOMI_API_KEY','XIAOMI_BASE_URL','OPENAI_API_KEY','OPENAI_BASE_URL',
+       'OPENROUTER_API_KEY','LLM_BASE_URL_OVERRIDE','LLM_API_KEY_OVERRIDE','LLM_MODEL_OVERRIDE',
        'CALL_GOAL','CALL_SYSTEM_PROMPT'],
   providers: ['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_PHONE_NUMBER','TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID'],
   network: ['WEBHOOK_PORT','DASHBOARD_PORT','WEBHOOK_URL_OVERRIDE'],
@@ -1001,6 +1044,33 @@ document.getElementById('f-TTS_PROVIDER').addEventListener('change', function() 
   const rows = TTS_KEY_MAP[this.value];
   if (rows) rows.forEach(id => { document.getElementById(id).style.display = 'block'; });
 });
+
+// ─── Agent backend visibility ───
+function updateAgentSections() {
+  const provider = document.getElementById('f-AGENT_PROVIDER').value;
+  const hermes = document.getElementById('section-hermes');
+  const legacy = document.getElementById('section-legacy-llm');
+  const custom = document.getElementById('section-custom-compat');
+
+  // Default: hide all optional sections
+  hermes.style.display = 'none';
+  legacy.style.display = 'none';
+  custom.style.display = 'none';
+
+  if (!provider || provider === 'hermes-gateway') {
+    // Auto-detect or hermes-gateway → show hermes + legacy (fallback chain)
+    hermes.style.display = 'block';
+    legacy.style.display = 'block';
+  } else if (provider === 'openai-compat') {
+    // Custom endpoint only
+    custom.style.display = 'block';
+  } else if (['openai', 'openrouter', 'xiaomi', 'ollama', 'lmstudio'].includes(provider)) {
+    // Named legacy LLM providers
+    legacy.style.display = 'block';
+  }
+}
+
+document.getElementById('f-AGENT_PROVIDER').addEventListener('change', updateAgentSections);
 
 // ─── Model discovery ───
 async function loadModels() {
@@ -1176,6 +1246,8 @@ async function loadSettings() {
       document.getElementById('f-STT_PROVIDER').value = sttVal;
       document.getElementById('f-TTS_PROVIDER').dispatchEvent(new Event('change'));
       document.getElementById('f-TTS_PROVIDER').value = ttsVal;
+      // Trigger agent backend visibility
+      updateAgentSections();
     }, 50);
 
     // Reset dirty indicators

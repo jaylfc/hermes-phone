@@ -78,6 +78,9 @@ TABS = {
         {"key": "OPENAI_API_KEY", "label": "OpenAI API Key", "type": "secure", "placeholder": "••••••••"},
         {"key": "OPENAI_BASE_URL", "label": "OpenAI Base URL", "type": "text", "placeholder": "https://api.openai.com/v1"},
         {"key": "OPENROUTER_API_KEY", "label": "OpenRouter API Key", "type": "secure", "placeholder": "••••••••"},
+        {"key": "LLM_BASE_URL_OVERRIDE", "label": "Custom Base URL", "type": "text", "placeholder": "https://your-endpoint.com/v1"},
+        {"key": "LLM_API_KEY_OVERRIDE", "label": "Custom API Key", "type": "secure", "placeholder": "••••••••"},
+        {"key": "LLM_MODEL_OVERRIDE", "label": "Custom Model", "type": "text", "placeholder": "Leave empty for default"},
         {"key": "CALL_GOAL", "label": "Call Goal", "type": "text", "placeholder": "Have a helpful conversation."},
         {"key": "CALL_SYSTEM_PROMPT", "label": "System Prompt", "type": "text", "placeholder": "Leave empty for default"},
     ],
@@ -120,6 +123,7 @@ STATIC_DROPDOWNS = {
         ("openrouter", "OpenRouter"),
         ("ollama", "Ollama (local)"),
         ("lmstudio", "LM Studio (local)"),
+        ("openai-compat", "Custom OpenAI-Compatible"),
     ],
 }
 

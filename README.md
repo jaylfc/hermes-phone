@@ -1,32 +1,79 @@
-# 📞 Hermes Phone
+# Dialtone
 
-**Your AI agent, on the phone.** Open-source phone system for macOS that connects Twilio to your Hermes agent — with full offline capability on Apple Silicon.
-
-Make and receive calls with your AI assistant. Leave voicemails. Manage everything from a native macOS menu bar app. Zero cloud dependencies required.
-
-## Why?
-
-- **Fully offline on Mac** — mlx-whisper (STT) + Kokoro TTS run locally on Apple Silicon. No API calls, no costs, no internet required for voice processing.
-- **Wraps your Hermes agent** — calls go through your actual agent session with tools, memory, and skills. Not a dumb chatbot.
-- **Any provider** — Deepgram, ElevenLabs, OpenAI, Azure, Google, Cartesia, Groq, or local. Mix and match.
-- **Works worldwide** — any Twilio number in 180+ countries.
-- **Native macOS app** — menu bar control center with color-coded status, settings panel, voicemail manager.
+**Framework-agnostic AI phone agent.** Connect any AI backend to a real phone number via Twilio. Make and receive calls, leave voicemails, manage everything from a web dashboard or native macOS app.
 
 ## Architecture
 
 ```
-Phone ←→ Twilio ←→ Server (port 5050) ←→ STT ←→ Hermes Agent ←→ TTS
-                                                    ↓
-                                              Tools, Memory, Skills
-                                                    ↓
-Dashboard (port 5051, auth protected) ←→ Settings, Voicemails, Calls
+                        ┌──────────────────────────────────────────┐
+  Caller ←→ Twilio ←→  │  Dialtone Server                         │
+                        │                                          │
+                        │  ┌────────┐   ┌─────────┐   ┌────────┐  │
+                        │  │  STT   │──→│  Agent   │──→│  TTS   │  │
+                        │  │Provider│   │ Backend  │   │Provider│  │
+                        │  └────────┘   └────┬────┘   └────────┘  │
+                        │       9 providers  │  5+ providers       │
+                        │               10 providers               │
+                        │                    │                     │
+                        │              ┌─────▼─────┐              │
+                        │              │  Voicemail │──→ Telegram  │
+                        │              └───────────┘               │
+                        └──────────────────────────────────────────┘
+
+  Port 5050 (public)  — Twilio webhooks, no auth required
+  Port 5051 (private) — Dashboard + API, token-protected
 ```
 
-**Two ports for security:**
-- `5050` — Public webhook server (Twilio calls, no auth)
-- `5051` — Protected dashboard + API (token auth, keep behind firewall)
+**Two-port model:** The webhook server on 5050 accepts inbound Twilio requests. The dashboard on 5051 is behind auth and provides a full management UI. Keep 5051 behind a firewall or VPN.
+
+## Supported Agent Backends
+
+| Provider | AGENT_PROVIDER | Notes |
+|---|---|---|
+| **Hermes Agent** | `hermes-gateway` | Primary backend. Full tool/skill/memory support via Gateway API |
+| **OpenAI API** | `openai` | GPT-4o, GPT-4o-mini, etc. |
+| **OpenRouter** | `openrouter` | Access to 200+ models via single API |
+| **Ollama** | `ollama` | Local LLMs, no API key needed |
+| **LM Studio** | `lmstudio` | Local LLMs, no API key needed |
+| **Xiaomi MiMo** | `xiaomi` | Free tier available |
+| Any OpenAI-compat endpoint | — | Set `OPENAI_BASE_URL` + `OPENAI_API_KEY` + `LLM_MODEL` |
+
+**Status:** Hermes Agent is the primary tested backend. We are actively seeking testers and feedback for other backends — open an issue or PR if you try one.
+
+## Voice Providers
+
+### STT (Speech-to-Text) — 9 providers
+
+| Provider | Type | Cost | Notes |
+|---|---|---|---|
+| **mlx-whisper** | Local | Free | Apple Silicon native, auto-downloads model |
+| **faster-whisper** | Local | Free | CTranslate2, 4x faster than base Whisper |
+| **whisper.cpp** | Local | Free | C/C++, runs anywhere |
+| **Deepgram Nova-3** | Cloud | $0.29/hr | $200 free credit |
+| Groq Whisper | Cloud | $0.04/hr | Cheapest cloud option |
+| AssemblyAI | Cloud | $0.21/hr | Strong multilingual |
+| Google Cloud STT | Cloud | $0.96/hr | 125+ languages |
+| Azure Speech | Cloud | $1.00/hr | Enterprise, custom models |
+| OpenAI Whisper | Cloud | $0.06/hr | Simple API |
+
+### TTS (Text-to-Speech) — 10+ providers
+
+| Provider | Type | Cost | Notes |
+|---|---|---|---|
+| **Kokoro 82M** | Local | Free | MLX native, Apache-2.0 |
+| Piper | Local | Free | C++, ultra-fast |
+| Coqui XTTS v2 | Local | Free | Voice cloning, 16 languages |
+| Bark | Local | Free | Expressive, laughter/pauses |
+| **Edge TTS** | Cloud | Free | Azure neural voices, no API key |
+| ElevenLabs | Cloud | ~$0.30/min | Best quality, voice cloning |
+| Cartesia Sonic | Cloud | ~$0.003/credit | Lowest latency |
+| OpenAI TTS | Cloud | $15/1M chars | Simple, good quality |
+| AWS Polly | Cloud | $16/1M chars | 60+ languages |
+| Deepgram Aura | Cloud | $0.03/1K chars | Telephony-optimized |
 
 ## Quick Start
+
+### macOS
 
 ```bash
 git clone https://github.com/jaylfc/dialtone.git
@@ -35,187 +82,114 @@ chmod +x install.sh
 ./install.sh
 ```
 
-The installer walks you through Twilio, STT, TTS, and Hermes Gateway setup.
+The installer walks you through Twilio, STT, TTS, and agent backend setup. On macOS you get a native menu bar app with settings panel and voicemail manager.
 
-## Voice Backends
-
-### STT (Speech-to-Text)
-
-**Recommended for Mac:**
-| Provider | Type | Cost | Notes |
-|----------|------|------|-------|
-| **mlx-whisper** ⭐ | Local | Free | Apple Silicon native, auto-downloads model |
-| **faster-whisper** | Local | Free | CTranslate2, 4x faster than Whisper |
-| **whisper.cpp** | Local | Free | C/C++, runs anywhere |
-
-**Cloud:**
-| Provider | Cost | Notes |
-|----------|------|-------|
-| **Deepgram Nova-3** ⭐ | $0.29/hr | Best price/performance, $200 free credit |
-| Groq Whisper | $0.04/hr | Cheapest cloud, 217x realtime |
-| AssemblyAI | $0.21/hr | Strong multilingual |
-| Google Cloud STT | $0.96/hr | 125+ languages |
-| Azure Speech | $1.00/hr | Enterprise, custom models |
-| Speechmatics | $0.24/hr | 56+ languages, on-device option |
-| OpenAI Whisper | $0.06/hr | Simple API |
-
-### TTS (Text-to-Speech)
-
-**Recommended for Mac:**
-| Provider | Type | Cost | Notes |
-|----------|------|------|-------|
-| **Kokoro 82M** ⭐ | Local | Free | 82M params, Apache-2.0, MLX native |
-| Piper | Local | Free | C++, ultra-fast, embedded devices |
-| Coqui XTTS v2 | Local | Free | Voice cloning, 16 languages |
-| Bark | Local | Free | Expressive, laughter/pauses |
-| Sesame CSM | Local | Free | Conversational, natural prosody |
-| ChatTTS | Local | Free | Fine-grained prosody control |
-
-**Cloud:**
-| Provider | Cost | Notes |
-|----------|------|-------|
-| **Edge TTS** | Free | Azure neural voices, no API key |
-| ElevenLabs | ~$0.30/min | Best quality, voice cloning |
-| Cartesia Sonic | ~$0.003/credit | Lowest latency |
-| OpenAI TTS | $15/1M chars | Simple, good quality |
-| AWS Polly | $16/1M chars | Reliable, 60+ languages |
-| Azure Speech | $15/1M chars | 140+ languages, custom voices |
-| Deepgram Aura | $0.03/1K chars | Good for telephony |
-| MiMo TTS | Free | Xiaomi, 4 English voices |
-
-## AI Agent Integration
-
-Hermes Phone wraps your **Hermes agent session**. When a call comes in:
-
-1. Twilio sends audio to the server
-2. STT transcribes the caller's speech
-3. The transcribed text goes to your Hermes agent via the Gateway API
-4. Your agent responds using its full capabilities (tools, memory, skills)
-5. TTS converts the response to speech
-6. Audio plays back to the caller
-
-**Setup:**
-```bash
-# Enable the Hermes Gateway (if not already)
-hermes config set api_server.enabled true
-hermes config set api_server.key your-secret-key
-
-# Set in phone-agent .env
-HERMES_GATEWAY_URL=http://127.0.0.1:8642
-HERMES_GATEWAY_TOKEN=your-secret-key
-# HERMES_MODEL_OVERRIDE=  # Leave empty for agent default
-```
-
-**Model override:** Set `HERMES_MODEL_OVERRIDE` to use a specific model for calls (e.g., `anthropic/claude-sonnet-4`). Leave empty to use whatever your agent is configured with. The settings panel shows all models your Hermes agent has access to.
-
-**Legacy fallback:** If Hermes Gateway isn't running, the phone agent falls back to direct LLM calls (Xiaomi MiMo, OpenAI, OpenRouter).
-
-## Features
-
-### Inbound Calls
-- Greeting plays to all callers (configurable)
-- PIN bypass connects to AI agent (hidden — not mentioned in greeting)
-- Everyone else gets voicemail with beep
-- Voicemail transcribed and sent to Telegram
-
-### Outbound Calls
-- Make calls from dashboard, menu bar, or API
-- AI agent handles the conversation
-- Call goal configurable per call
-
-### Voicemail
-- Recordings saved locally (`voicemails/audio/`)
-- Auto-transcription via STT
-- Telegram notifications with voice message + transcript
-- Export as ZIP or plain text
-- Playback in dashboard
-
-### Web Dashboard (port 5051)
-- Dark theme, mobile-friendly
-- Make calls, manage voicemails, export data
-- Full settings: company, voice, AI, providers, network
-- Model discovery from Hermes Gateway, Ollama, LM Studio
-- Service status indicators
-
-### macOS Menu Bar
-- Single phone icon: 🟢 running, 🔴 stopped
-- Start/Stop/Restart server
-- Make calls with phone number dialog
-- Voicemail manager
-- **Native settings panel** (pywebview, not browser redirect)
-- Open dashboard in browser
-
-## Security
-
-**Dashboard is token-protected.** Webhook routes are open for Twilio.
+### Linux
 
 ```bash
-# Login to dashboard
-open http://localhost:5051
-# Enter DASHBOARD_TOKEN from .env
-
-# API access
-curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:5051/api/settings
+git clone https://github.com/jaylfc/dialtone.git
+cd dialtone
+chmod +x install-linux.sh
+./install-linux.sh
 ```
 
-**Firewall advice:**
-- Port 5050 must be public (Twilio webhooks)
-- Port 5051 should be behind firewall (dashboard)
-- Use `WEBHOOK_URL_OVERRIDE` if behind a proxy
-- Consider VPN for dashboard access
+Installs as a systemd service. Manage via the web dashboard on port 5051. Use `uninstall-linux.sh` for clean removal.
+
+### Windows / WSL2
+
+Install under WSL2 using the Linux instructions above. Access the web dashboard from Windows at `http://localhost:5051`. Native macOS features (menu bar, local MLX voice) are not available — use cloud STT/TTS providers.
 
 ## Configuration
 
-All settings in `~/.hermes/phone-agent/.env`:
+All settings live in `~/.hermes/phone-agent/.env` and can be changed via the web dashboard or macOS settings panel.
+
+### Agent Backend
 
 ```bash
-# Company
-COMPANY_NAME=My Company
-VOICEMAIL_EMAIL=hello@company.com
-VOICEMAIL_PIN=1234
+# Choose your backend (default: auto-detect Hermes Gateway, then legacy LLM)
+AGENT_PROVIDER=hermes-gateway   # or openai, openrouter, ollama, lmstudio, xiaomi
 
-# Voice
-STT_PROVIDER=deepgram        # or mlx-whisper, faster-whisper, groq, etc.
-TTS_PROVIDER=polly            # or elevenlabs, kokoro, edge, etc.
+# Hermes Gateway settings
+HERMES_GATEWAY_URL=http://127.0.0.1:8642
+HERMES_GATEWAY_TOKEN=your-secret-key
+HERMES_MODEL_OVERRIDE=          # empty = agent default
+
+# OpenAI-compatible settings (used for openai, openrouter, ollama, lmstudio, xiaomi)
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini
+
+# Provider-specific overrides
+OLLAMA_BASE_URL=http://localhost:11434/v1
+LMSTUDIO_BASE_URL=http://localhost:1234/v1
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+```
+
+When `AGENT_PROVIDER` is empty, Dialtone auto-detects: tries Hermes Gateway first, then falls back to direct LLM calls, then no-op.
+
+### Voice
+
+```bash
+STT_PROVIDER=deepgram      # or mlx-whisper, faster-whisper, groq, etc.
+TTS_PROVIDER=polly          # or elevenlabs, kokoro, edge, etc.
 TTS_VOICE=Polly.Brian
 TTS_LANGUAGE=en-GB
-USE_LOCAL_VOICE=auto          # auto, true, false
+USE_LOCAL_VOICE=auto        # auto, true, false
+```
 
-# AI
-HERMES_GATEWAY_URL=http://127.0.0.1:8642
-HERMES_GATEWAY_TOKEN=your-token
-HERMES_MODEL_OVERRIDE=        # empty = agent default
+### Network
 
-# Network
+```bash
 WEBHOOK_PORT=5050
 DASHBOARD_PORT=5051
-WEBHOOK_URL_OVERRIDE=         # if behind proxy
+WEBHOOK_URL_OVERRIDE=       # set if behind a proxy/ngrok
 DASHBOARD_TOKEN=auto-generated
 ```
 
-All settings editable from the menu bar app or web dashboard.
+### Call Handling
 
-## Fully Offline Setup
+```bash
+COMPANY_NAME=My Company
+VOICEMAIL_EMAIL=hello@company.com
+VOICEMAIL_PIN=1234
+CALL_GOAL="Have a friendly conversation."
+```
 
-For zero cloud dependencies on Apple Silicon:
+## Local / Offline Mode
+
+Full offline capability on Apple Silicon — zero cloud API calls:
 
 ```bash
 # 1. Install local voice engines
 pip install mlx-whisper mlx-audio
 
-# 2. Configure .env
+# 2. Set in .env
 STT_PROVIDER=mlx-whisper
 TTS_PROVIDER=kokoro
 USE_LOCAL_VOICE=true
+AGENT_PROVIDER=ollama        # or lmstudio
 
 # 3. Models auto-download on first use
 # STT: whisper-large-v3-turbo (~1.6GB)
 # TTS: Kokoro-82M-4bit (~50MB)
+# LLM: whatever Ollama/LM Studio model you choose
 ```
 
-**Cost: $0.00/min** (after Twilio per-minute charges).
+**Cost: $0.00/min** after Twilio per-minute charges.
 
-## API Reference
+## Features
+
+**Inbound calls:** Configurable greeting, PIN bypass to AI agent, voicemail with auto-transcription and Telegram notifications.
+
+**Outbound calls:** Initiate from dashboard, menu bar, or API. AI agent handles the conversation. Per-call goal configuration.
+
+**Voicemail:** Local recordings, auto-transcription, Telegram voice message + transcript, ZIP/text export, dashboard playback.
+
+**Dashboard (port 5051):** Dark theme, mobile-friendly. Make calls, manage voicemails, configure all providers, discover models from Hermes/Ollama/LM Studio.
+
+**macOS menu bar:** Color-coded status icon, start/stop/restart, phone number dialog for calls, voicemail manager, native settings panel (pywebview).
+
+## API
 
 ```bash
 # Health check (no auth)
@@ -223,54 +197,62 @@ curl http://localhost:5050/health
 
 # Make a call
 curl -X POST http://localhost:5051/call \
-  -H "Authorization: Bearer TOKEN" \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"to": "+123****7890", "goal": "Book a table for 4"}'
+  -d '{"to": "+1234567890", "goal": "Book a table for 4"}'
 
 # List voicemails
-curl -H "Authorization: Bearer TOKEN" http://localhost:5051/voicemails
+curl -H "Authorization: Bearer <token>" http://localhost:5051/voicemails
 
 # Get settings
-curl -H "Authorization: Bearer TOKEN" http://localhost:5051/api/settings
+curl -H "Authorization: Bearer <token>" http://localhost:5051/api/settings
 
 # List available models
-curl -H "Authorization: Bearer TOKEN" http://localhost:5051/api/models
+curl -H "Authorization: Bearer <token>" http://localhost:5051/api/models
 
 # Export voicemails
-curl -H "Authorization: Bearer TOKEN" http://localhost:5051/export/zip -o voicemails.zip
+curl -H "Authorization: Bearer <token>" http://localhost:5051/export/zip -o voicemails.zip
 ```
 
 ## Files
 
 ```
-server.py        — Main server (two Flask apps: webhook + dashboard)
-menubar.py       — macOS menu bar app with native settings panel
-local_voice.py   — Local STT/TTS via MLX (Apple Silicon)
-install.sh       — Setup wizard
-uninstall.sh     — Clean removal
-run.sh           — Launch server
-setup.sh         — Install dependencies
-.env             — Configuration (gitignored)
-.env.example     — Configuration template
-voicemails/      — Voicemail audio and metadata
-requirements.txt — Python dependencies
+agents/
+  base.py             — Abstract agent backend interface (AgentBackend ABC)
+  hermes_gateway.py   — Hermes Agent Gateway backend
+  openai_compat.py    — OpenAI-compatible backend (OpenAI, OpenRouter, Ollama, LM Studio, Xiaomi)
+  noop.py             — Fallback when no backend configured
+server.py             — Main server (two Flask apps: webhook + dashboard)
+menubar.py            — macOS menu bar app with native settings panel
+native_settings.py    — macOS native settings (pywebview)
+local_voice.py        — Local STT/TTS via MLX (Apple Silicon)
+provider_registry.py  — STT/TTS provider discovery and configuration
+install.sh            — macOS setup wizard
+install-linux.sh      — Linux setup wizard
+uninstall-linux.sh    — Linux clean removal
+run.sh                — Launch server
+setup.sh              — Install dependencies
+.env                  — Configuration (gitignored)
+.env.example          — Configuration template
+voicemails/           — Voicemail audio and metadata
+requirements.txt      — Python dependencies
 ```
+
+## Contributing
+
+**We need testers for non-Hermes backends.** If you use OpenAI, OpenRouter, Ollama, LM Studio, or any OpenAI-compatible provider, please try it and open an issue with your results.
+
+Workflow:
+1. Fork and create a feature branch
+2. Make changes, test locally
+3. Open a PR — CodeRabbit reviews automatically
+4. Address feedback, merge
 
 ## Requirements
 
-- macOS (Apple Silicon recommended for local voice)
 - Python 3.11+
-- Twilio account (any country)
-- Hermes Agent (for AI integration)
-
-## Cost
-
-| Setup | Per minute |
-|-------|-----------|
-| Fully local (mlx-whisper + Kokoro) | ~$0.014 (Twilio only) |
-| Deepgram + MiMo TTS | ~$0.015 |
-| Deepgram + ElevenLabs | ~$0.33 |
-| Groq Whisper + Edge TTS | ~$0.05 |
+- Twilio account (any country, any number)
+- One agent backend (Hermes Agent recommended, or any supported provider)
 
 ## License
 

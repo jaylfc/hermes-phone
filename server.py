@@ -838,6 +838,7 @@ AGENT_PROVIDERS = [
     {"id": "openrouter", "name": "OpenRouter", "type": "cloud"},
     {"id": "ollama", "name": "Ollama (local)", "type": "local"},
     {"id": "lmstudio", "name": "LM Studio (local)", "type": "local"},
+    {"id": "openai-compat", "name": "Custom OpenAI-Compatible", "type": "cloud"},
 ]
 
 SETTINGS_SCHEMA = {
@@ -879,6 +880,9 @@ SETTINGS_SCHEMA = {
     "HERMES_MODEL_OVERRIDE": {"label": "Model Override (calls)", "type": "text", "section": "hermes", "hint": "Leave empty for agent default"},
     "LLM_PROVIDER": {"label": "LLM Provider", "type": "select", "section": "llm"},
     "LLM_MODEL": {"label": "LLM Model", "type": "text", "section": "llm"},
+    "LLM_BASE_URL_OVERRIDE": {"label": "Custom Base URL", "type": "text", "section": "llm", "hint": "Override base URL for custom OpenAI-compatible endpoint"},
+    "LLM_API_KEY_OVERRIDE": {"label": "Custom API Key", "type": "password", "section": "llm", "sensitive": True},
+    "LLM_MODEL_OVERRIDE": {"label": "Custom Model", "type": "text", "section": "llm", "hint": "Override model name for custom endpoint"},
     "WEBHOOK_URL_OVERRIDE": {"label": "Webhook URL Override", "type": "text", "section": "network"},
     "TELEGRAM_BOT_TOKEN": {"label": "Telegram Bot Token", "type": "password", "section": "telegram", "sensitive": True},
     "TELEGRAM_CHAT_ID": {"label": "Telegram Chat ID", "type": "text", "section": "telegram"},

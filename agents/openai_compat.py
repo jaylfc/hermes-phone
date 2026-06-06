@@ -22,10 +22,23 @@ class OpenAICompatAgent(AgentBackend):
         # Auto-detect provider from env if not explicitly passed
         self.base_url = base_url or self._detect_base_url()
         self.api_key = api_key or self._detect_api_key()
-        self.model = model or os.environ.get("LLM_MODEL", "mimo-v2.5")
+        self.model = model or self._detect_model()
+
+    @staticmethod
+    def _detect_model() -> str:
+        """Detect model from env, with override support."""
+        # LLM_MODEL_OVERRIDE takes priority (for custom endpoints)
+        override = os.environ.get("LLM_MODEL_OVERRIDE", "")
+        if override:
+            return override
+        return os.environ.get("LLM_MODEL", "mimo-v2.5")
 
     @staticmethod
     def _detect_base_url() -> str:
+        # LLM_BASE_URL_OVERRIDE takes priority
+        override = os.environ.get("LLM_BASE_URL_OVERRIDE", "")
+        if override:
+            return override
         provider = os.environ.get("LLM_PROVIDER", "xiaomi")
         if provider == "xiaomi":
             return os.environ.get("XIAOMI_BASE_URL", "https://token-plan-ams.xiaomimimo.com/v1")
@@ -35,6 +48,10 @@ class OpenAICompatAgent(AgentBackend):
 
     @staticmethod
     def _detect_api_key() -> str:
+        # LLM_API_KEY_OVERRIDE takes priority
+        override = os.environ.get("LLM_API_KEY_OVERRIDE", "")
+        if override:
+            return override
         provider = os.environ.get("LLM_PROVIDER", "xiaomi")
         if provider == "xiaomi" and os.environ.get("XIAOMI_API_KEY"):
             return os.environ["XIAOMI_API_KEY"]

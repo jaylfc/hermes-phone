@@ -13,6 +13,7 @@ Supported AGENT_PROVIDER values:
     xiaomi          — Xiaomi MiMo
     ollama          — Ollama (local)
     lmstudio        — LM Studio (local)
+    openai-compat   — Custom OpenAI-compatible endpoint (uses LLM_BASE_URL_OVERRIDE etc.)
     (empty)         — Auto-detect (try Hermes Gateway, then legacy LLM)
 """
 
@@ -37,6 +38,18 @@ def get_agent_backend() -> AgentBackend:
     if provider == "hermes-gateway":
         from .hermes_gateway import HermesGatewayAgent
         _backend = HermesGatewayAgent()
+        return _backend
+
+    if provider == "openai-compat":
+        from .openai_compat import OpenAICompatAgent
+        base_url = os.environ.get("LLM_BASE_URL_OVERRIDE", "")
+        api_key = os.environ.get("LLM_API_KEY_OVERRIDE", "")
+        model = os.environ.get("LLM_MODEL_OVERRIDE", "")
+        if not base_url:
+            print("⚠️  openai-compat requires LLM_BASE_URL_OVERRIDE in .env")
+            _backend = NoOpAgent()
+            return _backend
+        _backend = OpenAICompatAgent(base_url=base_url, api_key=api_key, model=model)
         return _backend
 
     if provider in ("openai", "openrouter", "xiaomi", "ollama", "lmstudio"):
