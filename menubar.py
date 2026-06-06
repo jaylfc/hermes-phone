@@ -591,10 +591,10 @@ class PhoneMenuBar(rumps.App):
         if Path(icon_path).exists():
             self.icon = icon_path
         self.title = ""  # No text, just the icon
-        # Update menu state
-        self.start_item.set_callback(None if not running else self.start_server)
-        self.stop_item.set_callback(None if running else self.stop_server)
-        self.restart_item.set_callback(None if running else self.restart_server)
+        # Update menu state (None = disabled, callback = enabled)
+        self.start_item.set_callback(None if running else self.start_server)
+        self.stop_item.set_callback(None if not running else self.stop_server)
+        self.restart_item.set_callback(None if not running else self.restart_server)
         # Update status text
         if running and data:
             provider = data.get("hermes_model") or data.get("llm_legacy", "unknown")
@@ -604,12 +604,24 @@ class PhoneMenuBar(rumps.App):
             self.status_item.title = "Server stopped"
 
     def start_server(self, _):
-        subprocess.Popen(
-            ["bash", str(AGENT_DIR / "run.sh")],
-            cwd=str(AGENT_DIR),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        # Check if already running
+        try:
+            r = requests.get(HEALTH_URL, timeout=2)
+            if r.status_code == 200:
+                rumps.notification("Hermes Phone", "", "Server already running")
+                return
+        except:
+            pass
+        
+        # Start server
+        log_path = AGENT_DIR / "server.log"
+        with open(log_path, "a") as log:
+            subprocess.Popen(
+                ["bash", str(AGENT_DIR / "run.sh")],
+                cwd=str(AGENT_DIR),
+                stdout=log,
+                stderr=log,
+            )
         rumps.notification("Hermes Phone", "", "Server starting...")
 
     def stop_server(self, _):
