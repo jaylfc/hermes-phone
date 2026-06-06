@@ -1,40 +1,32 @@
-# 🤖 Hermes Phone
+# 📞 Hermes Phone
 
-AI-powered phone agent for macOS. Make and receive calls with an AI assistant, voicemail with transcription, and a full web dashboard.
+**Your AI agent, on the phone.** Open-source phone system for macOS that connects Twilio to your Hermes agent — with full offline capability on Apple Silicon.
 
-**Works worldwide** — any Twilio number (US, UK, EU, AU, and 180+ countries).
+Make and receive calls with your AI assistant. Leave voicemails. Manage everything from a native macOS menu bar app. Zero cloud dependencies required.
+
+## Why?
+
+- **Fully offline on Mac** — mlx-whisper (STT) + Kokoro TTS run locally on Apple Silicon. No API calls, no costs, no internet required for voice processing.
+- **Wraps your Hermes agent** — calls go through your actual agent session with tools, memory, and skills. Not a dumb chatbot.
+- **Any provider** — Deepgram, ElevenLabs, OpenAI, Azure, Google, Cartesia, Groq, or local. Mix and match.
+- **Works worldwide** — any Twilio number in 180+ countries.
+- **Native macOS app** — menu bar control center with color-coded status, settings panel, voicemail manager.
 
 ## Architecture
 
 ```
-Phone ←→ Twilio ←→ WebSocket ←→ Server ←→ Deepgram (STT)
-                                          ←→ Xiaomi MiMo 2.5 (LLM)
-                                          ←→ MiMo TTS / Polly / MLX (TTS)
+Phone ←→ Twilio ←→ Server (port 5050) ←→ STT ←→ Hermes Agent ←→ TTS
+                                                    ↓
+                                              Tools, Memory, Skills
+                                                    ↓
+Dashboard (port 5051, auth protected) ←→ Settings, Voicemails, Calls
 ```
 
-**Latency target:** <500ms voice-to-voice
+**Two ports for security:**
+- `5050` — Public webhook server (Twilio calls, no auth)
+- `5051` — Protected dashboard + API (token auth, keep behind firewall)
 
-## Features
-
-- **Inbound calls** — Greeting → PIN gate → AI conversation or voicemail
-- **Outbound calls** — Make AI-powered calls from dashboard or menu bar
-- **Voicemail** — Recording, transcription, Telegram notifications
-- **Web dashboard** — Dark theme, voicemail playback, settings, export
-- **macOS menu bar** — Full control: start/stop, make calls, manage voicemails
-- **Local voice** — mlx-whisper + mlx-audio on Apple Silicon (zero API costs)
-- **Security** — Token-protected dashboard, open webhook routes for Twilio
-
-## Setup
-
-### 1. Get API keys
-
-| Service | Cost | Sign up |
-|---------|------|---------|
-| **Twilio** | ~$0.01/min | [twilio.com](https://www.twilio.com) |
-| **Deepgram** | Free $200 credit | [console.deepgram.com](https://console.deepgram.com/signup) |
-| **Xiaomi MiMo** | Free tier available | [mimo.xiaomi.com](https://mimo.xiaomi.com) |
-
-### 2. Install
+## Quick Start
 
 ```bash
 git clone https://github.com/jaylfc/hermes-phone.git
@@ -43,201 +35,242 @@ chmod +x install.sh
 ./install.sh
 ```
 
-The installer will ask for your API keys and generate a secure dashboard token.
+The installer walks you through Twilio, STT, TTS, and Hermes Gateway setup.
 
-### 3. Configure
+## Voice Backends
 
-Edit `~/.hermes/phone-agent/.env`:
+### STT (Speech-to-Text)
 
+**Recommended for Mac:**
+| Provider | Type | Cost | Notes |
+|----------|------|------|-------|
+| **mlx-whisper** ⭐ | Local | Free | Apple Silicon native, auto-downloads model |
+| **faster-whisper** | Local | Free | CTranslate2, 4x faster than Whisper |
+| **whisper.cpp** | Local | Free | C/C++, runs anywhere |
+
+**Cloud:**
+| Provider | Cost | Notes |
+|----------|------|-------|
+| **Deepgram Nova-3** ⭐ | $0.29/hr | Best price/performance, $200 free credit |
+| Groq Whisper | $0.04/hr | Cheapest cloud, 217x realtime |
+| AssemblyAI | $0.21/hr | Strong multilingual |
+| Google Cloud STT | $0.96/hr | 125+ languages |
+| Azure Speech | $1.00/hr | Enterprise, custom models |
+| Speechmatics | $0.24/hr | 56+ languages, on-device option |
+| OpenAI Whisper | $0.06/hr | Simple API |
+
+### TTS (Text-to-Speech)
+
+**Recommended for Mac:**
+| Provider | Type | Cost | Notes |
+|----------|------|------|-------|
+| **Kokoro 82M** ⭐ | Local | Free | 82M params, Apache-2.0, MLX native |
+| Piper | Local | Free | C++, ultra-fast, embedded devices |
+| Coqui XTTS v2 | Local | Free | Voice cloning, 16 languages |
+| Bark | Local | Free | Expressive, laughter/pauses |
+| Sesame CSM | Local | Free | Conversational, natural prosody |
+| ChatTTS | Local | Free | Fine-grained prosody control |
+
+**Cloud:**
+| Provider | Cost | Notes |
+|----------|------|-------|
+| **Edge TTS** | Free | Azure neural voices, no API key |
+| ElevenLabs | ~$0.30/min | Best quality, voice cloning |
+| Cartesia Sonic | ~$0.003/credit | Lowest latency |
+| OpenAI TTS | $15/1M chars | Simple, good quality |
+| AWS Polly | $16/1M chars | Reliable, 60+ languages |
+| Azure Speech | $15/1M chars | 140+ languages, custom voices |
+| Deepgram Aura | $0.03/1K chars | Good for telephony |
+| MiMo TTS | Free | Xiaomi, 4 English voices |
+
+## AI Agent Integration
+
+Hermes Phone wraps your **Hermes agent session**. When a call comes in:
+
+1. Twilio sends audio to the server
+2. STT transcribes the caller's speech
+3. The transcribed text goes to your Hermes agent via the Gateway API
+4. Your agent responds using its full capabilities (tools, memory, skills)
+5. TTS converts the response to speech
+6. Audio plays back to the caller
+
+**Setup:**
 ```bash
-# Twilio
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_PHONE_NUMBER=+1234567890
+# Enable the Hermes Gateway (if not already)
+hermes config set api_server.enabled true
+hermes config set api_server.key your-secret-key
 
-# Deepgram (STT)
-DEEPGRAM_API_KEY=your_deepgram_key
-
-# Xiaomi MiMo (LLM)
-XIAOMI_API_KEY=your_xiaomi_key
-LLM_PROVIDER=xiaomi
-LLM_MODEL=mimo-v2.5
-
-# Dashboard security (auto-generated by install.sh)
-DASHBOARD_TOKEN=your_secret_token_here
+# Set in phone-agent .env
+HERMES_GATEWAY_URL=http://127.0.0.1:8642
+HERMES_GATEWAY_TOKEN=your-secret-key
+# HERMES_MODEL_OVERRIDE=  # Leave empty for agent default
 ```
 
-### 4. Run
+**Model override:** Set `HERMES_MODEL_OVERRIDE` to use a specific model for calls (e.g., `anthropic/claude-sonnet-4`). Leave empty to use whatever your agent is configured with. The settings panel shows all models your Hermes agent has access to.
 
-```bash
-cd ~/.hermes/phone-agent
-./run.sh
-```
+**Legacy fallback:** If Hermes Gateway isn't running, the phone agent falls back to direct LLM calls (Xiaomi MiMo, OpenAI, OpenRouter).
 
-Server starts at `http://localhost:5050`.
+## Features
 
-### 5. Expose to the internet
+### Inbound Calls
+- Greeting plays to all callers (configurable)
+- PIN bypass connects to AI agent (hidden — not mentioned in greeting)
+- Everyone else gets voicemail with beep
+- Voicemail transcribed and sent to Telegram
 
-**Option A: Static IP (recommended)**
-Forward port 5050 to your Mac's local IP.
+### Outbound Calls
+- Make calls from dashboard, menu bar, or API
+- AI agent handles the conversation
+- Call goal configurable per call
 
-**Option B: ngrok**
-```bash
-ngrok http 5050
-```
+### Voicemail
+- Recordings saved locally (`voicemails/audio/`)
+- Auto-transcription via STT
+- Telegram notifications with voice message + transcript
+- Export as ZIP or plain text
+- Playback in dashboard
 
-Then set your Twilio phone number's Voice webhook to:
-```
-https://YOUR-NGROK.ngrok.io/voice/incoming
-```
-
-## Security
-
-The dashboard is protected by a token. Webhook routes (`/voice/*`) are open for Twilio.
-
-### Dashboard access
-- Open `http://YOUR-IP:5050/` — you'll see a login page
-- Enter your `DASHBOARD_TOKEN` from `.env`
-- Session cookie lasts 30 days
-
-### API access
-Include the token in requests:
-```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:5050/api/settings
-```
-
-### Firewall advice
-If using a static IP, keep port 5050 open for Twilio webhooks, but consider:
-- Running the dashboard on a separate port (5051) behind your firewall
-- Using a VPN for dashboard access
-- Setting up fail2ban for brute force protection
-
-## Usage
-
-### Web Dashboard
-Open `http://YOUR-IP:5050/` — login with your dashboard token.
-
-Features:
-- Make outbound calls
-- View/play/delete voicemails
-- Export voicemails (ZIP or transcripts)
-- Change all settings (company name, voice, greeting, PIN, etc.)
+### Web Dashboard (port 5051)
+- Dark theme, mobile-friendly
+- Make calls, manage voicemails, export data
+- Full settings: company, voice, AI, providers, network
+- Model discovery from Hermes Gateway, Ollama, LM Studio
 - Service status indicators
 
 ### macOS Menu Bar
-The menu bar app (📡) provides:
+- Single phone icon: 🟢 running, 🔴 stopped
 - Start/Stop/Restart server
 - Make calls with phone number dialog
-- Voicemail manager with playback
-- Settings (voice, greeting, PIN, etc.)
+- Voicemail manager
+- **Native settings panel** (pywebview, not browser redirect)
 - Open dashboard in browser
 
-### Make an outbound call (API)
+## Security
+
+**Dashboard is token-protected.** Webhook routes are open for Twilio.
+
 ```bash
-curl -X POST http://localhost:5050/call \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"to": "+1234567890", "goal": "Book a table for 4 at 7pm"}'
+# Login to dashboard
+open http://localhost:5051
+# Enter DASHBOARD_TOKEN from .env
+
+# API access
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:5051/api/settings
 ```
 
-### Health check (no auth required)
+**Firewall advice:**
+- Port 5050 must be public (Twilio webhooks)
+- Port 5051 should be behind firewall (dashboard)
+- Use `WEBHOOK_URL_OVERRIDE` if behind a proxy
+- Consider VPN for dashboard access
+
+## Configuration
+
+All settings in `~/.hermes/phone-agent/.env`:
+
 ```bash
-curl http://localhost:5050/health
-```
+# Company
+COMPANY_NAME=My Company
+VOICEMAIL_EMAIL=hello@company.com
+VOICEMAIL_PIN=1234
 
-## Customization
-
-### Company name
-Set `COMPANY_NAME` in `.env`:
-```
-COMPANY_NAME=Your Company
-```
-
-### Voicemail greeting
-Set `VOICEMAIL_GREETING` in `.env`:
-```
-VOICEMAIL_GREETING=Thanks for calling! We're busy right now...
-```
-
-### AI personality
-Set `CALL_SYSTEM_PROMPT` in `.env`:
-```
-CALL_SYSTEM_PROMPT=You are a posh British butler named Jarvis...
-```
-
-### TTS voice
-Options in `.env`:
-```
-# Twilio Polly voices (free)
+# Voice
+STT_PROVIDER=deepgram        # or mlx-whisper, faster-whisper, groq, etc.
+TTS_PROVIDER=polly            # or elevenlabs, kokoro, edge, etc.
 TTS_VOICE=Polly.Brian
 TTS_LANGUAGE=en-GB
+USE_LOCAL_VOICE=auto          # auto, true, false
 
-# Or use local MLX voice (Apple Silicon)
+# AI
+HERMES_GATEWAY_URL=http://127.0.0.1:8642
+HERMES_GATEWAY_TOKEN=your-token
+HERMES_MODEL_OVERRIDE=        # empty = agent default
+
+# Network
+WEBHOOK_PORT=5050
+DASHBOARD_PORT=5051
+WEBHOOK_URL_OVERRIDE=         # if behind proxy
+DASHBOARD_TOKEN=auto-generated
+```
+
+All settings editable from the menu bar app or web dashboard.
+
+## Fully Offline Setup
+
+For zero cloud dependencies on Apple Silicon:
+
+```bash
+# 1. Install local voice engines
+pip install mlx-whisper mlx-audio
+
+# 2. Configure .env
+STT_PROVIDER=mlx-whisper
+TTS_PROVIDER=kokoro
 USE_LOCAL_VOICE=true
+
+# 3. Models auto-download on first use
+# STT: whisper-large-v3-turbo (~1.6GB)
+# TTS: Kokoro-82M-4bit (~50MB)
 ```
 
-Available Polly voices:
-- Amy, Brian, Emma (UK English)
-- Joanna, Matthew, Ivy, Justin, Kendra, Kimberly, Salli (US English)
-- Nicole, Russell (Australian English)
+**Cost: $0.00/min** (after Twilio per-minute charges).
 
-### Voicemail PIN
-Set `VOICEMAIL_PIN` in `.env` (callers dial this during greeting to reach AI):
+## API Reference
+
+```bash
+# Health check (no auth)
+curl http://localhost:5050/health
+
+# Make a call
+curl -X POST http://localhost:5051/call \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to": "+123****7890", "goal": "Book a table for 4"}'
+
+# List voicemails
+curl -H "Authorization: Bearer TOKEN" http://localhost:5051/voicemails
+
+# Get settings
+curl -H "Authorization: Bearer TOKEN" http://localhost:5051/api/settings
+
+# List available models
+curl -H "Authorization: Bearer TOKEN" http://localhost:5051/api/models
+
+# Export voicemails
+curl -H "Authorization: Bearer TOKEN" http://localhost:5051/export/zip -o voicemails.zip
 ```
-VOICEMAIL_PIN=1234
-```
-
-## Cost estimate
-
-| Component | Per minute cost |
-|-----------|----------------|
-| Twilio | ~$0.01 |
-| Deepgram STT | ~$0.004 |
-| MiMo 2.5 | ~$0.001 |
-| MiMo TTS | Free |
-| **Total** | **~$0.015/min** |
-
-With local voice (MLX): **~$0.014/min** (STT only).
 
 ## Files
 
 ```
-server.py        — Main Flask+WebSocket server
-menubar.py       — macOS menu bar app
+server.py        — Main server (two Flask apps: webhook + dashboard)
+menubar.py       — macOS menu bar app with native settings panel
 local_voice.py   — Local STT/TTS via MLX (Apple Silicon)
-setup.sh         — Install dependencies
-run.sh           — Launch server
-install.sh       — Full setup wizard
+install.sh       — Setup wizard
 uninstall.sh     — Clean removal
-.env             — API keys and settings (gitignored)
+run.sh           — Launch server
+setup.sh         — Install dependencies
+.env             — Configuration (gitignored)
+.env.example     — Configuration template
 voicemails/      — Voicemail audio and metadata
+requirements.txt — Python dependencies
 ```
 
-## Troubleshooting
+## Requirements
 
-### "Unauthorized" on dashboard
-Your `DASHBOARD_TOKEN` in `.env` doesn't match what you're entering. Check:
-```bash
-grep DASHBOARD_TOKEN ~/.hermes/phone-agent/.env
-```
+- macOS (Apple Silicon recommended for local voice)
+- Python 3.11+
+- Twilio account (any country)
+- Hermes Agent (for AI integration)
 
-### No voicemail transcripts
-Check Deepgram is configured:
-```bash
-curl http://localhost:5050/health
-```
-Should show `"deepgram": true`.
+## Cost
 
-### Calls not connecting
-1. Check Twilio credentials in `.env`
-2. Verify webhook URL in Twilio console
-3. Check server logs for errors
-
-### Menu bar can't connect
-Ensure the server is running:
-```bash
-curl http://localhost:5050/health
-```
+| Setup | Per minute |
+|-------|-----------|
+| Fully local (mlx-whisper + Kokoro) | ~$0.014 (Twilio only) |
+| Deepgram + MiMo TTS | ~$0.015 |
+| Deepgram + ElevenLabs | ~$0.33 |
+| Groq Whisper + Edge TTS | ~$0.05 |
 
 ## License
 
