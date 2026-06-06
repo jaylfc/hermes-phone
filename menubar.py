@@ -21,6 +21,15 @@ from datetime import datetime
 import requests
 import rumps
 
+# Hide dock icon — menu bar only app
+try:
+    import AppKit
+    NSApplication = AppKit.NSApplication
+    NSApplicationActivationPolicyAccessory = 1
+    NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+except ImportError:
+    pass  # pyobjc not available, dock icon will show
+
 # ═══════════════════════════════════════════════════════════════════
 # Config
 # ═══════════════════════════════════════════════════════════════════
@@ -635,18 +644,24 @@ class PhoneMenuBar(rumps.App):
     def open_settings(self, _):
         """Open native settings panel in pywebview."""
         def run_window():
-            import webview
-            window = webview.create_window(
-                "Hermes Phone Settings",
-                html=SETTINGS_HTML,
-                js_api=self.settings_api,
-                width=700,
-                height=800,
-                resizable=True,
-                min_size=(500, 600),
-            )
-            self.settings_api.window = window
-            webview.start()
+            try:
+                import webview
+                window = webview.create_window(
+                    "Hermes Phone Settings",
+                    html=SETTINGS_HTML,
+                    js_api=self.settings_api,
+                    width=700,
+                    height=800,
+                    resizable=True,
+                    min_size=(500, 600),
+                )
+                self.settings_api.window = window
+                webview.start()
+            except Exception as e:
+                print(f"Settings window error: {e}")
+                # Fallback: open web dashboard
+                import webbrowser
+                webbrowser.open("http://localhost:5051")
         threading.Thread(target=run_window, daemon=True).start()
 
     def open_dashboard(self, _):
