@@ -1127,10 +1127,15 @@ def set_auth_cookie_from_token(response):
 # ═══════════════════════════════════════════════════════════════════
 
 DASHBOARD_HTML = open(Path(__file__).parent / "dashboard.html").read() if (Path(__file__).parent / "dashboard.html").exists() else ""
+SETTINGS_HTML = open(Path(__file__).parent / "settings.html").read() if (Path(__file__).parent / "settings.html").exists() else ""
 
 @dashboard_app.route("/", methods=["GET"])
 def dashboard():
     return Response(DASHBOARD_HTML, mimetype="text/html")
+
+@dashboard_app.route("/settings.html", methods=["GET"])
+def settings_page():
+    return Response(SETTINGS_HTML, mimetype="text/html")
 
 # ═══════════════════════════════════════════════════════════════════
 # Provider Management API

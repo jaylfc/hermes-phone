@@ -203,10 +203,11 @@ class NativeSettingsWindow:
 
     def _build_tab_content(self, fields):
         """Build a scrollable column of labeled fields."""
-        y = 10
         width = 610
         row_height = 52
         content_h = len(fields) * row_height + 20
+        # AppKit y=0 is bottom; start at top and work down
+        y = content_h - row_height - 10
 
         content = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, width, content_h))
 

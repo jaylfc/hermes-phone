@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hermes Phone — Settings</title>
+<style>
+/* ═══════════════════════════════════════════════════
+   Neo Kinpaku Design System — Lacquer + Gold
+   ═══════════════════════════════════════════════════ */
+:root {
+  --lacquer: #0c0c0e;
+  --surface: #141418;
+  --surface-raised: #1a1a20;
+  --surface-overlay: #222228;
+  --gold: #c9a84c;
+  --gold-dim: #8a7235;
+  --gold-bright: #e4c65a;
+  --champagne: #e8dcc8;
+  --text: #d4d0c8;
+  --text-dim: #7a7670;
+  --text-ghost: #4a4844;
+  --danger: #c44040;
+  --danger-dim: #8a2c2c;
+  --success: #3a8a4a;
+  --success-dim: #2a6a38;
+  --border: #2a2a30;
+  --border-gold: rgba(201, 168, 76, 0.2);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--sans);
+  background: var(--lacquer);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Layout ─── */
+.shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* ─── Header ─── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--champagne);
+  letter-spacing: -0.02em;
+}
+
+.header h1 span {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* ─── Nav ─── */
+.nav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.nav a {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.nav a:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.nav a.active {
+  color: var(--gold);
+  background: var(--surface);
+  border: 1px solid var(--border-gold);
+}
+
+/* ─── Tabs ─── */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  padding: 10px 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-family: var(--sans);
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.tab-btn.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* ─── Status Bar ─── */
+.status-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.status-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-ghost);
+}
+
+.status-badge .dot.ok { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.4); }
+.status-badge .dot.warn { background: #facc15; box-shadow: 0 0 6px rgba(250, 204, 21, 0.3); }
+.status-badge .dot.err { background: var(--danger); }
+
+/* ─── Section ─── */
+.panel {
+  display: none;
+}
+
+.panel.active {
+  display: block;
+}
+
+.group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--champagne);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Form Fields ─── */
+.field {
+  margin-bottom: 14px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.field .hint {
+  font-size: 11px;
+  color: var(--text-ghost);
+  margin-top: 3px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--lacquer);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--mono);
+  transition: border-color 0.15s;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--gold-dim);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--text-ghost);
+}
+
+.field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237a7670'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+}
+
+.field select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Sensitive field wrapper */
+.sensitive-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.sensitive-wrap input {
+  flex: 1;
+}
+
+.sensitive-wrap .input-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ─── Buttons ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--surface-raised);
+  border-color: var(--border-gold);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  border-color: var(--gold);
+  color: #0c0c0e;
+  font-weight: 600;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+}
+
+.btn-danger {
+  border-color: var(--danger-dim);
+  color: var(--danger);
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.btn-danger:hover {
+  background: var(--danger-dim);
+  color: #fff;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.btn-icon {
+  padding: 4px 6px;
+  font-size: 13px;
+  line-height: 1;
+  min-width: 26px;
+  text-align: center;
+}
+
+.save-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.save-bar .dirty-indicator {
+  font-size: 11px;
+  color: var(--gold-dim);
+  display: none;
+}
+
+.save-bar .dirty-indicator.visible {
+  display: inline;
+}
+
+/* ─── Toast ─── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1000;
+  animation: slideUp 0.2s ease;
+  border: 1px solid;
+}
+
+.toast.success {
+  background: var(--success-dim);
+  color: #a7f3d0;
+  border-color: var(--success);
+}
+
+.toast.error {
+  background: var(--danger-dim);
+  color: #fca5a5;
+  border-color: var(--danger);
+}
+
+.toast.info {
+  background: #1e3a5f;
+  color: #93c5fd;
+  border-color: #3b82f6;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Loading ─── */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-dim);
+}
+
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Model List ─── */
+.model-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--lacquer);
+  margin-top: 6px;
+  display: none;
+}
+
+.model-list.visible {
+  display: block;
+}
+
+.model-source {
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gold-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+}
+
+.model-item {
+  padding: 7px 12px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+.model-item:last-child {
+  border-bottom: none;
+}
+
+.model-item:hover {
+  background: var(--surface-raised);
+  color: var(--champagne);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+  .shell { padding: 16px 14px 48px; }
+  .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .tabs { gap: 0; }
+  .tab-btn { padding: 8px 12px; font-size: 12px; }
+  .group { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">⚙️</div>
+      <h1>Hermes Phone <span>Settings</span></h1>
+    </div>
+    <div style="display:flex;gap:8px">
+      <a href="/" class="btn">← Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Service Status Badges -->
+  <div class="status-bar" id="status-bar">
+    <span class="status-badge"><span class="dot" id="st-twilio"></span> Twilio</span>
+    <span class="status-badge"><span class="dot" id="st-deepgram"></span> STT</span>
+    <span class="status-badge"><span class="dot" id="st-hermes"></span> Hermes Gateway</span>
+    <span class="status-badge"><span class="dot" id="st-voice"></span> Voice Engine</span>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="general">General</button>
+    <button class="tab-btn" data-tab="voice">Voice</button>
+    <button class="tab-btn" data-tab="ai">AI Agent</button>
+    <button class="tab-btn" data-tab="providers">Providers</button>
+    <button class="tab-btn" data-tab="network">Network</button>
+  </div>
+
+  <!-- Loading indicator -->
+  <div id="loading" class="loading">
+    <span class="spinner"></span> Loading settings...
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       TAB: General
+       ═══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-general">
+    <div class="group">
+      <div class="group-title">Company & Voicemail</div>
+      <div class="field">
+        <label>Company Name</label>
+        <input type="text" id="f-COMPANY_NAME" placeholder="My Company">
+      </div>
+      <div class="field">
+        <label>Voicemail Email</label>
+        <input type="email" id="f-VOICEMAIL_EMAIL" placeholder="alerts@example.com">
+        <div class="hint">Transcripts will be sent here (if email is configured)</div>
+      </div>
+      <div class="field">
+        <label>Voicemail Greeting</label>
+        <textarea id="f-VOICEMAIL_GREETING" rows="3" placeholder="Thank you for calling. Please leave a message..."></textarea>
+      </div>
+      <div class="field">
+        <label>Voicemail PIN</label>
+        <input type="text" id="f-VOICEMAIL_PIN" placeholder="1234">
+        <div class="hint">Callers enter this PIN to access voicemail retrieval</div>
+      </div>
+      <div class="field">
+        <label>Max Recording Length (seconds)</label>
+        <input type="number" id="f-VOICEMAIL_MAX_LENGTH" placeholder="120" min="10" max="600">
+      </div>
+      <div class="field">
+        <label>Dashboard Password</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-DASHBOARD_TOKEN" placeholder="Set a password to protect the dashboard">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-DASHBOARD_TOKEN')" title="Show/Hide">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-DASHBOARD_TOKEN')" title="Clear">✕</button>
+          </div>
+        </div>
+        <div class="hint">Leave empty for no auth (first run)</div>
+      </div>
+    </div>
+    <div class="save-bar">
+      <button class="btn btn-gold" onclick="saveTab('general')">💾 Save General</button>
+      <span class="dirty-indicator" id="dirty-general">Unsaved changes</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       TAB: Voice
+       ═══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-voice">
+    <div class="group">
+      <div class="group-title">Speech-to-Text (STT)</div>
+      <div class="field">
+        <label>STT Provider</label>
+        <select id="f-STT_PROVIDER"></select>
+      </div>
+      <div class="field" id="row-DEEPGRAM_API_KEY" style="display:none">
+        <label>Deepgram API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-DEEPGRAM_API_KEY" placeholder="Enter Deepgram key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-DEEPGRAM_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-DEEPGRAM_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field" id="row-ASSEMBLYAI_API_KEY" style="display:none">
+        <label>AssemblyAI API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-ASSEMBLYAI_API_KEY" placeholder="Enter AssemblyAI key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-ASSEMBLYAI_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-ASSEMBLYAI_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field" id="row-GROQ_API_KEY" style="display:none">
+        <label>Groq API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-GROQ_API_KEY" placeholder="Enter Groq key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-GROQ_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-GROQ_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field" id="row-SPEECHMATICS_API_KEY" style="display:none">
+        <label>Speechmatics API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-SPEECHMATICS_API_KEY" placeholder="Enter Speechmatics key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-SPEECHMATICS_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-SPEECHMATICS_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-title">Text-to-Speech (TTS)</div>
+      <div class="field">
+        <label>TTS Provider</label>
+        <select id="f-TTS_PROVIDER"></select>
+      </div>
+      <div class="field">
+        <label>TTS Voice</label>
+        <select id="f-TTS_VOICE"></select>
+      </div>
+      <div class="field">
+        <label>Language</label>
+        <select id="f-TTS_LANGUAGE">
+          <option value="en-GB">English (UK)</option>
+          <option value="en-US">English (US)</option>
+          <option value="en-AU">English (AU)</option>
+          <option value="de-DE">Deutsch</option>
+          <option value="fr-FR">Français</option>
+          <option value="es-ES">Español</option>
+          <option value="it-IT">Italiano</option>
+          <option value="pt-BR">Português (BR)</option>
+          <option value="ja-JP">日本語</option>
+          <option value="zh-CN">中文</option>
+          <option value="ko-KR">한국어</option>
+        </select>
+      </div>
+      <div class="field" id="row-ELEVENLABS_API_KEY" style="display:none">
+        <label>ElevenLabs API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-ELEVENLABS_API_KEY" placeholder="Enter ElevenLabs key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-ELEVENLABS_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-ELEVENLABS_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field" id="row-ELEVENLABS_VOICE_ID" style="display:none">
+        <label>ElevenLabs Voice ID</label>
+        <input type="text" id="f-ELEVENLABS_VOICE_ID" placeholder="21m00Tcm4TlvDq8ikWAM">
+      </div>
+      <div class="field" id="row-CARTESIA_API_KEY" style="display:none">
+        <label>Cartesia API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-CARTESIA_API_KEY" placeholder="Enter Cartesia key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-CARTESIA_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-CARTESIA_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field" id="row-CARTESIA_VOICE_ID" style="display:none">
+        <label>Cartesia Voice ID</label>
+        <input type="text" id="f-CARTESIA_VOICE_ID" placeholder="Enter Cartesia voice ID">
+      </div>
+      <div class="field">
+        <label>Voice Engine (Local)</label>
+        <select id="f-USE_LOCAL_VOICE">
+          <option value="auto">Auto (detect)</option>
+          <option value="always">Always Local</option>
+          <option value="never">Never (Cloud only)</option>
+        </select>
+        <div class="hint">Auto uses local engines when available, falls back to cloud</div>
+      </div>
+    </div>
+    <div class="save-bar">
+      <button class="btn btn-gold" onclick="saveTab('voice')">💾 Save Voice</button>
+      <span class="dirty-indicator" id="dirty-voice">Unsaved changes</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       TAB: AI Agent
+       ═══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-ai">
+    <div class="group">
+      <div class="group-title">Hermes Gateway</div>
+      <div class="field">
+        <label>Hermes Gateway URL</label>
+        <input type="text" id="f-HERMES_GATEWAY_URL" placeholder="http://127.0.0.1:8642">
+        <div class="hint">URL of your Hermes Gateway instance</div>
+      </div>
+      <div class="field">
+        <label>Hermes Gateway Token</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-HERMES_GATEWAY_TOKEN" placeholder="Enter gateway token">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-HERMES_GATEWAY_TOKEN')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-HERMES_GATEWAY_TOKEN')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Model Override</label>
+        <input type="text" id="f-HERMES_MODEL_OVERRIDE" placeholder="Leave empty for agent default" autocomplete="off">
+        <div class="hint">Override the model used for calls (leave empty to use agent default)</div>
+        <div class="model-list" id="model-list">
+          <div class="model-source">▸ Hermes Gateway</div>
+          <div id="models-hermes"></div>
+          <div class="model-source">▸ Ollama</div>
+          <div id="models-ollama"></div>
+          <div class="model-source">▸ LM Studio</div>
+          <div id="models-lmstudio"></div>
+        </div>
+        <button class="btn btn-sm" onclick="loadModels()" style="margin-top:6px" type="button">🔍 Discover Models</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-title">Legacy LLM (Fallback)</div>
+      <div class="field">
+        <label>LLM Provider</label>
+        <select id="f-LLM_PROVIDER">
+          <option value="xiaomi">Xiaomi (MiMo)</option>
+          <option value="openai">OpenAI</option>
+          <option value="openrouter">OpenRouter</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>LLM Model</label>
+        <input type="text" id="f-LLM_MODEL" placeholder="mimo-v2.5">
+      </div>
+      <div class="field" id="row-XIAOMI" >
+        <label>Xiaomi API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-XIAOMI_API_KEY" placeholder="Enter Xiaomi key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-XIAOMI_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-XIAOMI_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Xiaomi Base URL</label>
+        <input type="text" id="f-XIAOMI_BASE_URL" placeholder="https://token-plan-ams.xiaomimimo.com/v1">
+      </div>
+      <div class="field">
+        <label>OpenAI API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-OPENAI_API_KEY" placeholder="Enter OpenAI key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-OPENAI_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-OPENAI_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>OpenAI Base URL</label>
+        <input type="text" id="f-OPENAI_BASE_URL" placeholder="https://api.openai.com/v1">
+      </div>
+      <div class="field">
+        <label>OpenRouter API Key</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-OPENROUTER_API_KEY" placeholder="Enter OpenRouter key">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-OPENROUTER_API_KEY')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-OPENROUTER_API_KEY')">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-title">Conversation</div>
+      <div class="field">
+        <label>Call Goal</label>
+        <input type="text" id="f-CALL_GOAL" placeholder="Have a helpful conversation.">
+        <div class="hint">High-level instruction for the AI during calls</div>
+      </div>
+      <div class="field">
+        <label>System Prompt</label>
+        <textarea id="f-CALL_SYSTEM_PROMPT" rows="5" placeholder="You are a helpful phone assistant..."></textarea>
+        <div class="hint">Full system prompt for the AI agent during calls</div>
+      </div>
+    </div>
+    <div class="save-bar">
+      <button class="btn btn-gold" onclick="saveTab('ai')">💾 Save AI Agent</button>
+      <span class="dirty-indicator" id="dirty-ai">Unsaved changes</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       TAB: Providers
+       ═══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-providers">
+    <div class="group">
+      <div class="group-title">Twilio (Phone)</div>
+      <div class="field">
+        <label>Account SID</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-TWILIO_ACCOUNT_SID" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-TWILIO_ACCOUNT_SID')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-TWILIO_ACCOUNT_SID')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Auth Token</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-TWILIO_AUTH_TOKEN" placeholder="Enter auth token">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-TWILIO_AUTH_TOKEN')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-TWILIO_AUTH_TOKEN')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <input type="tel" id="f-TWILIO_PHONE_NUMBER" placeholder="+447xxx">
+        <div class="hint">Your Twilio phone number in E.164 format</div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-title">Telegram Notifications</div>
+      <div class="field">
+        <label>Bot Token</label>
+        <div class="sensitive-wrap">
+          <input type="password" id="f-TELEGRAM_BOT_TOKEN" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+          <div class="input-actions">
+            <button class="btn btn-sm btn-icon" onclick="toggleVis('f-TELEGRAM_BOT_TOKEN')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="clearField('f-TELEGRAM_BOT_TOKEN')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Chat ID</label>
+        <input type="text" id="f-TELEGRAM_CHAT_ID" placeholder="-1001234567890">
+        <div class="hint">Telegram chat/group ID for voicemail notifications</div>
+      </div>
+    </div>
+    <div class="save-bar">
+      <button class="btn btn-gold" onclick="saveTab('providers')">💾 Save Providers</button>
+      <span class="dirty-indicator" id="dirty-providers">Unsaved changes</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       TAB: Network
+       ═══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-network">
+    <div class="group">
+      <div class="group-title">Ports</div>
+      <div class="field">
+        <label>Webhook Port (Twilio)</label>
+        <input type="number" id="f-WEBHOOK_PORT" placeholder="5050" min="1024" max="65535">
+        <div class="hint">Port for incoming Twilio webhook calls</div>
+      </div>
+      <div class="field">
+        <label>Dashboard Port</label>
+        <input type="number" id="f-DASHBOARD_PORT" placeholder="5051" min="1024" max="65535">
+        <div class="hint">Port for this web dashboard</div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-title">Webhook</div>
+      <div class="field">
+        <label>Webhook URL Override</label>
+        <input type="text" id="f-WEBHOOK_URL_OVERRIDE" placeholder="https://your-domain.com">
+        <div class="hint">Override the public URL for Twilio webhooks (use if behind a proxy)</div>
+      </div>
+    </div>
+    <div class="save-bar">
+      <button class="btn btn-gold" onclick="saveTab('network')">💾 Save Network</button>
+      <span class="dirty-indicator" id="dirty-network">Unsaved changes</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   Settings Page Logic
+   ═══════════════════════════════════════════════════ */
+
+const API = '';
+
+// Track original values and current dirty state per tab
+const originalValues = {};
+const dirtyTabs = {};
+
+// Map tab names to their setting keys
+const TAB_KEYS = {
+  general: ['COMPANY_NAME','VOICEMAIL_EMAIL','VOICEMAIL_GREETING','VOICEMAIL_PIN','VOICEMAIL_MAX_LENGTH','DASHBOARD_TOKEN'],
+  voice: ['STT_PROVIDER','DEEPGRAM_API_KEY','ASSEMBLYAI_API_KEY','GROQ_API_KEY','SPEECHMATICS_API_KEY',
+          'TTS_PROVIDER','TTS_VOICE','TTS_LANGUAGE','ELEVENLABS_API_KEY','ELEVENLABS_VOICE_ID',
+          'CARTESIA_API_KEY','CARTESIA_VOICE_ID','USE_LOCAL_VOICE'],
+  ai: ['HERMES_GATEWAY_URL','HERMES_GATEWAY_TOKEN','HERMES_MODEL_OVERRIDE','LLM_PROVIDER','LLM_MODEL',
+       'XIAOMI_API_KEY','XIAOMI_BASE_URL','OPENAI_API_KEY','OPENAI_BASE_URL','OPENROUTER_API_KEY',
+       'CALL_GOAL','CALL_SYSTEM_PROMPT'],
+  providers: ['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_PHONE_NUMBER','TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID'],
+  network: ['WEBHOOK_PORT','DASHBOARD_PORT','WEBHOOK_URL_OVERRIDE'],
+};
+
+// Map STT providers to their key field rows
+const STT_KEY_MAP = {
+  'deepgram': ['row-DEEPGRAM_API_KEY'],
+  'assemblyai': ['row-ASSEMBLYAI_API_KEY'],
+  'groq': ['row-GROQ_API_KEY'],
+  'speechmatics': ['row-SPEECHMATICS_API_KEY'],
+};
+
+// Map TTS providers to their key field rows
+const TTS_KEY_MAP = {
+  'elevenlabs': ['row-ELEVENLABS_API_KEY','row-ELEVENLABS_VOICE_ID'],
+  'cartesia': ['row-CARTESIA_API_KEY','row-CARTESIA_VOICE_ID'],
+};
+
+// ─── Toast ───
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ─── Tab Switching ───
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ─── Sensitive field helpers ───
+function toggleVis(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function clearField(id) {
+  const el = document.getElementById(id);
+  el.value = '';
+  el.type = 'text';
+  markDirty(el);
+}
+
+// ─── Dirty tracking ───
+function markDirty(el) {
+  // Find which tab this field belongs to
+  for (const [tab, keys] of Object.entries(TAB_KEYS)) {
+    const fieldName = el.id.replace('f-', '');
+    if (keys.includes(fieldName)) {
+      dirtyTabs[tab] = true;
+      const indicator = document.getElementById('dirty-' + tab);
+      if (indicator) indicator.classList.add('visible');
+      break;
+    }
+  }
+}
+
+// Attach change/input listeners to all form fields
+document.querySelectorAll('.field input, .field select, .field textarea').forEach(el => {
+  el.addEventListener('input', () => markDirty(el));
+  el.addEventListener('change', () => markDirty(el));
+});
+
+// ─── STT provider-dependent fields ───
+document.getElementById('f-STT_PROVIDER').addEventListener('change', function() {
+  // Hide all STT key rows
+  Object.values(STT_KEY_MAP).flat().forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  // Show relevant rows
+  const rows = STT_KEY_MAP[this.value];
+  if (rows) rows.forEach(id => { document.getElementById(id).style.display = 'block'; });
+});
+
+// ─── TTS provider-dependent fields ───
+document.getElementById('f-TTS_PROVIDER').addEventListener('change', function() {
+  // Hide all TTS key rows
+  Object.values(TTS_KEY_MAP).flat().forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  // Show relevant rows
+  const rows = TTS_KEY_MAP[this.value];
+  if (rows) rows.forEach(id => { document.getElementById(id).style.display = 'block'; });
+});
+
+// ─── Model discovery ───
+async function loadModels() {
+  const list = document.getElementById('model-list');
+  list.classList.add('visible');
+
+  document.getElementById('models-hermes').innerHTML = '<div class="model-item" style="color:var(--text-ghost)">Loading...</div>';
+  document.getElementById('models-ollama').innerHTML = '<div class="model-item" style="color:var(--text-ghost)">Loading...</div>';
+  document.getElementById('models-lmstudio').innerHTML = '<div class="model-item" style="color:var(--text-ghost)">Loading...</div>';
+
+  try {
+    const r = await fetch(API + '/api/models');
+    const data = await r.json();
+
+    populateModelList('models-hermes', data.hermes || []);
+    populateModelList('models-ollama', data.ollama || []);
+    populateModelList('models-lmstudio', data.lmstudio || []);
+  } catch (e) {
+    toast('Failed to discover models', 'error');
+  }
+}
+
+function populateModelList(containerId, models) {
+  const container = document.getElementById(containerId);
+  if (!models.length) {
+    container.innerHTML = '<div class="model-item" style="color:var(--text-ghost)">None found</div>';
+    return;
+  }
+  container.innerHTML = models.map(m =>
+    `<div class="model-item" onclick="selectModel('${m.replace(/'/g, "\\'")}')">${m}</div>`
+  ).join('');
+}
+
+function selectModel(model) {
+  document.getElementById('f-HERMES_MODEL_OVERRIDE').value = model;
+  document.getElementById('model-list').classList.remove('visible');
+  markDirty(document.getElementById('f-HERMES_MODEL_OVERRIDE'));
+  toast('Model selected: ' + model, 'info');
+}
+
+// Close model list on outside click
+document.addEventListener('click', function(e) {
+  const list = document.getElementById('model-list');
+  if (!list.contains(e.target) && e.target.textContent !== '🔍 Discover Models') {
+    list.classList.remove('visible');
+  }
+});
+
+// ─── Populate dropdowns ───
+function populateSttDropdown(providers) {
+  const sel = document.getElementById('f-STT_PROVIDER');
+  sel.innerHTML = '';
+  const cloud = providers.filter(p => p.type === 'cloud');
+  const local = providers.filter(p => p.type === 'local');
+
+  if (cloud.length) {
+    const og = document.createElement('optgroup');
+    og.label = '☁️ Cloud';
+    cloud.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name + (p.cost ? ' (' + p.cost + ')' : '') + (p.recommended ? ' ★' : '');
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  }
+  if (local.length) {
+    const og = document.createElement('optgroup');
+    og.label = '💻 Local / Offline';
+    local.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name + (p.cost ? ' (' + p.cost + ')' : '') + (p.recommended ? ' ★' : '');
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  }
+}
+
+function populateTtsDropdown(providers) {
+  const sel = document.getElementById('f-TTS_PROVIDER');
+  sel.innerHTML = '';
+  const cloud = providers.filter(p => p.type === 'cloud');
+  const local = providers.filter(p => p.type === 'local');
+
+  if (cloud.length) {
+    const og = document.createElement('optgroup');
+    og.label = '☁️ Cloud';
+    cloud.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name + (p.cost ? ' (' + p.cost + ')' : '') + (p.recommended ? ' ★' : '');
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  }
+  if (local.length) {
+    const og = document.createElement('optgroup');
+    og.label = '💻 Local / Offline';
+    local.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name + (p.cost ? ' (' + p.cost + ')' : '') + (p.recommended ? ' ★' : '');
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  }
+}
+
+function populateVoiceDropdown(voices) {
+  const sel = document.getElementById('f-TTS_VOICE');
+  sel.innerHTML = '';
+  voices.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.id;
+    opt.textContent = v.name + ' (' + v.lang + ', ' + v.gender + ')';
+    sel.appendChild(opt);
+  });
+}
+
+// ─── Load settings on page load ───
+async function loadSettings() {
+  try {
+    const r = await fetch(API + '/api/settings');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+
+    document.getElementById('loading').style.display = 'none';
+
+    // Populate dropdowns from API metadata
+    if (data._stt_providers) populateSttDropdown(data._stt_providers);
+    if (data._tts_providers) populateTtsDropdown(data._tts_providers);
+    if (data._available_voices) populateVoiceDropdown(data._available_voices);
+
+    // Set service status badges
+    if (data._status) {
+      setStatus('st-twilio', data._status.twilio);
+      setStatus('st-deepgram', data._status.deepgram);
+      setStatus('st-hermes', data._status.hermes_gateway);
+      const ve = data._status.voice_engine;
+      const veDot = document.getElementById('st-voice');
+      if (ve && ve !== 'none') {
+        veDot.className = 'dot ok';
+        veDot.parentElement.querySelector('.dot') !== veDot || null;
+      } else {
+        veDot.className = 'dot warn';
+      }
+    }
+
+    // Populate all form fields
+    for (const key of Object.keys(data)) {
+      if (key.startsWith('_')) continue;
+      const el = document.getElementById('f-' + key);
+      if (el) {
+        el.value = data[key] || '';
+        // Store original value
+        originalValues[key] = data[key] || '';
+      }
+    }
+
+    // Trigger provider-dependent field visibility
+    const sttVal = document.getElementById('f-STT_PROVIDER').value;
+    document.getElementById('f-STT_PROVIDER').dispatchEvent(new Event('change'));
+    document.getElementById('f-STT_PROVIDER').value = sttVal;
+
+    const ttsVal = document.getElementById('f-TTS_PROVIDER').value;
+    document.getElementById('f-TTS_PROVIDER').dispatchEvent(new Event('change'));
+    document.getElementById('f-TTS_PROVIDER').value = ttsVal;
+
+    // Re-dispatch to show correct fields
+    setTimeout(() => {
+      document.getElementById('f-STT_PROVIDER').dispatchEvent(new Event('change'));
+      document.getElementById('f-STT_PROVIDER').value = sttVal;
+      document.getElementById('f-TTS_PROVIDER').dispatchEvent(new Event('change'));
+      document.getElementById('f-TTS_PROVIDER').value = ttsVal;
+    }, 50);
+
+    // Reset dirty indicators
+    Object.keys(dirtyTabs).forEach(t => {
+      dirtyTabs[t] = false;
+      const ind = document.getElementById('dirty-' + t);
+      if (ind) ind.classList.remove('visible');
+    });
+
+  } catch (e) {
+    document.getElementById('loading').innerHTML =
+      '<div style="color:var(--danger)">⚠ Failed to load settings: ' + e.message + '</div>';
+    toast('Failed to load settings', 'error');
+  }
+}
+
+function setStatus(id, ok) {
+  const el = document.getElementById(id);
+  el.className = 'dot ' + (ok ? 'ok' : 'err');
+}
+
+// ─── Save tab ───
+async function saveTab(tab) {
+  const keys = TAB_KEYS[tab];
+  if (!keys) return;
+
+  const payload = {};
+  let hasChanges = false;
+
+  for (const key of keys) {
+    const el = document.getElementById('f-' + key);
+    if (!el) continue;
+    const newVal = el.value;
+    const oldVal = originalValues[key] || '';
+    if (newVal !== oldVal) {
+      payload[key] = newVal;
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) {
+    toast('No changes to save', 'info');
+    return;
+  }
+
+  const btn = document.querySelector(`#panel-${tab} .btn-gold`);
+  const origText = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:1.5px;margin:0"></span> Saving...';
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(API + '/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json();
+
+    if (r.ok) {
+      // Update original values
+      for (const key of keys) {
+        const el = document.getElementById('f-' + key);
+        if (el) originalValues[key] = el.value;
+      }
+      dirtyTabs[tab] = false;
+      const ind = document.getElementById('dirty-' + tab);
+      if (ind) ind.classList.remove('visible');
+
+      const parts = [];
+      if (data.updated && data.updated.length) parts.push(data.updated.length + ' updated');
+      if (data.deleted && data.deleted.length) parts.push(data.deleted.length + ' cleared');
+      toast('✓ Saved — ' + parts.join(', '), 'success');
+    } else {
+      toast('Error: ' + (data.error || 'Unknown'), 'error');
+    }
+  } catch (e) {
+    toast('Save failed: ' + e.message, 'error');
+  } finally {
+    btn.innerHTML = origText;
+    btn.disabled = false;
+  }
+}
+
+// ─── Keyboard shortcut: Ctrl+S saves active tab ───
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab) saveTab(activeTab.dataset.tab);
+  }
+});
+
+// ─── Warn before leaving with unsaved changes ───
+window.addEventListener('beforeunload', function(e) {
+  const hasDirty = Object.values(dirtyTabs).some(v => v);
+  if (hasDirty) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// ─── Init ───
+loadSettings();
+</script>
+</body>
+</html>

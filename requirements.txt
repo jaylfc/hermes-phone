@@ -6,5 +6,8 @@ openai>=1.50
 requests>=2.31
 pydub>=0.25
 audioop-lts
-rumps
-pywebview>=4.0
+rumps; sys_platform == 'darwin'
+pyobjc-core; sys_platform == 'darwin'
+pyobjc-framework-Cocoa; sys_platform == 'darwin'
+pyobjc-framework-WebKit; sys_platform == 'darwin'
+pywebview>=4.0; sys_platform == 'darwin'

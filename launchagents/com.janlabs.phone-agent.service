@@ -1,0 +1,17 @@
+[Unit]
+Description=Hermes Phone Agent — AI-powered VoIP server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.hermes/phone-agent
+ExecStart=%h/.hermes/phone-agent/venv/bin/python3 %h/.hermes/phone-agent/server.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+EnvironmentFile=-%h/.hermes/phone-agent/.env
+
+[Install]
+WantedBy=default.target
