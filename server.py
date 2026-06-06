@@ -30,6 +30,9 @@ from pathlib import Path
 from datetime import datetime
 from provider_registry import PROVIDER_DEPS, check_provider_installed, get_provider_status
 
+# Agent backend (lazy-loaded)
+from agents import get_agent_backend
+
 import requests as http_requests
 from flask import Flask, request, Response, jsonify
 from flask_sock import Sock
@@ -74,6 +77,7 @@ HERMES_GATEWAY_TOKEN = env("HERMES_GATEWAY_TOKEN")
 HERMES_MODEL_OVERRIDE = env("HERMES_MODEL_OVERRIDE")
 
 # Legacy LLM (fallback if Hermes Gateway not available)
+AGENT_PROVIDER = env("AGENT_PROVIDER", "")
 LLM_PROVIDER = env("LLM_PROVIDER", "xiaomi")
 LLM_MODEL = env("LLM_MODEL", "mimo-v2.5")
 XIAOMI_KEY = env("XIAOMI_API_KEY")
@@ -350,97 +354,32 @@ def get_webhook_base():
     return f"https://{request.host}"
 
 # ═══════════════════════════════════════════════════════════════════
-# LLM — Hermes Gateway (primary) or legacy fallback
+# LLM — Pluggable agent backend
 # ═══════════════════════════════════════════════════════════════════
 
 def get_llm_response(call_sid, user_text):
-    """Get response from LLM — prefers Hermes Gateway, falls back to direct API."""
+    """Get response from the configured agent backend."""
     state = call_states.setdefault(call_sid, {"messages": [], "transcript": [], "conversation_id": f"call-{call_sid}"})
     state["transcript"].append({"role": "user", "text": user_text})
 
-    # Try Hermes Gateway first
-    reply = _try_hermes_gateway(state, user_text)
-    if reply:
-        return _record_reply(state, reply)
-
-    # Fallback to legacy direct LLM
-    reply = _try_legacy_llm(state, user_text)
-    if reply:
-        return _record_reply(state, reply)
-
-    return "Sorry, I'm having technical difficulties."
-
-def _record_reply(state, reply):
-    state["transcript"].append({"role": "assistant", "text": reply})
-    return reply
-
-def _try_hermes_gateway(state, user_text):
-    """Call Hermes Gateway API with named conversation for stateful multi-turn."""
-    if not HERMES_GATEWAY_URL:
-        return None
+    backend = get_agent_backend()
     try:
-        resp = http_requests.post(
-            f"{HERMES_GATEWAY_URL}/v1/responses",
-            headers={**get_auth_headers(), "Content-Type": "application/json"},
-            json={
-                "model": HERMES_MODEL_OVERRIDE or "default",
-                "input": user_text,
-                "conversation": state["conversation_id"],
-                "instructions": get_system_prompt(),
-            },
-            timeout=30,
+        reply = backend.chat(
+            call_sid=call_sid,
+            user_text=user_text,
+            system_prompt=get_system_prompt(),
+            conversation_id=state["conversation_id"],
+            history=state["messages"],
         )
-        if resp.status_code == 200:
-            data = resp.json()
-            # Extract text from response
-            for item in data.get("output", []):
-                if item.get("type") == "message":
-                    for content in item.get("content", []):
-                        if content.get("type") == "output_text":
-                            return content["text"].strip()
-            # Fallback for chat completions format
-            if "choices" in data:
-                return data["choices"][0]["message"]["content"].strip()
-            return None
-        else:
-            print(f"Hermes Gateway error: {resp.status_code} {resp.text[:200]}")
-            return None
-    except Exception as e:
-        print(f"Hermes Gateway unavailable: {e}")
-        return None
-
-def _try_legacy_llm(state, user_text):
-    """Fallback: direct LLM provider call."""
-    from openai import OpenAI
-
-    client = None
-    model = LLM_MODEL
-    if LLM_PROVIDER == "xiaomi" and XIAOMI_KEY:
-        client = OpenAI(base_url=XIAOMI_BASE_URL, api_key=XIAOMI_KEY)
-    elif OPENROUTER_KEY:
-        client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=OPENROUTER_KEY)
-    elif OPENAI_KEY:
-        client = OpenAI(base_url=OPENAI_BASE_URL, api_key=OPENAI_KEY)
-
-    if not client:
-        return None
-
-    messages = [{"role": "system", "content": get_system_prompt()}]
-    for m in state["messages"][-40:]:
-        messages.append(m)
-    messages.append({"role": "user", "content": user_text})
-
-    try:
-        resp = client.chat.completions.create(model=model, messages=messages, max_tokens=500, temperature=0.7)
-        reply = resp.choices[0].message.content.strip()
         state["messages"].append({"role": "user", "content": user_text})
         state["messages"].append({"role": "assistant", "content": reply})
         if len(state["messages"]) > 40:
             state["messages"] = state["messages"][-40:]
+        state["transcript"].append({"role": "assistant", "text": reply})
         return reply
     except Exception as e:
-        print(f"Legacy LLM error: {e}")
-        return None
+        print(f"Agent error: {e}")
+        return "Sorry, I'm having technical difficulties."
 
 # ═══════════════════════════════════════════════════════════════════
 # TTS
@@ -754,26 +693,16 @@ def handle_ws(ws):
 @webhook_app.route("/health", methods=["GET"])
 @dashboard_app.route("/health", methods=["GET"])
 def health():
-    hermes_ok = False
-    hermes_model = None
-    if HERMES_GATEWAY_URL:
-        try:
-            r = http_requests.get(f"{HERMES_GATEWAY_URL}/v1/models", headers=get_auth_headers(), timeout=3)
-            hermes_ok = r.status_code == 200
-            if hermes_ok:
-                models = r.json().get("data", [])
-                if models:
-                    hermes_model = models[0].get("id", "unknown")
-        except:
-            pass
+    backend = get_agent_backend()
+    agent_health = backend.health_check()
 
     return jsonify({
         "status": "ok",
         "twilio": bool(TWILIO_SID),
         "deepgram": bool(DEEPGRAM_KEY),
-        "hermes_gateway": hermes_ok,
-        "hermes_model": hermes_model,
-        "llm_legacy": LLM_PROVIDER if not hermes_ok else None,
+        "agent_backend": AGENT_PROVIDER or "auto",
+        "agent_ok": agent_health.get("ok", False),
+        "agent_model": agent_health.get("model"),
         "voicemails": len(load_voicemails()),
         "webhook_port": WEBHOOK_PORT,
         "dashboard_port": DASHBOARD_PORT,
@@ -901,7 +830,18 @@ TTS_PROVIDERS = [
     {"id": "speecht5", "name": "SpeechT5 (Microsoft)", "type": "local", "cost": "Free"},
 ]
 
+AGENT_PROVIDERS = [
+    {"id": "", "name": "Auto-detect (recommended)", "type": "auto"},
+    {"id": "hermes-gateway", "name": "Hermes Agent (Gateway API)", "type": "cloud", "recommended": True},
+    {"id": "openai", "name": "OpenAI", "type": "cloud"},
+    {"id": "xiaomi", "name": "Xiaomi MiMo", "type": "cloud"},
+    {"id": "openrouter", "name": "OpenRouter", "type": "cloud"},
+    {"id": "ollama", "name": "Ollama (local)", "type": "local"},
+    {"id": "lmstudio", "name": "LM Studio (local)", "type": "local"},
+]
+
 SETTINGS_SCHEMA = {
+    "AGENT_PROVIDER": {"label": "Agent Backend", "type": "select", "section": "ai"},
     "COMPANY_NAME": {"label": "Company Name", "type": "text", "section": "company"},
     "VOICEMAIL_EMAIL": {"label": "Voicemail Email", "type": "email", "section": "company"},
     "VOICEMAIL_GREETING": {"label": "Voicemail Greeting", "type": "textarea", "section": "company"},
@@ -995,15 +935,19 @@ def api_get_settings():
         result[key] = mask_value(key, val) if schema.get("sensitive") else val
 
     # Service status
+    backend = get_agent_backend()
+    agent_health = backend.health_check()
     result["_status"] = {
         "twilio": bool(TWILIO_SID),
         "deepgram": bool(DEEPGRAM_KEY),
-        "hermes_gateway": bool(HERMES_GATEWAY_URL),
+        "agent_backend": AGENT_PROVIDER or "auto",
+        "agent_ok": agent_health.get("ok", False),
         "voice_engine": voice_engine.mode if voice_engine else "none",
     }
     result["_schema"] = SETTINGS_SCHEMA
     result["_stt_providers"] = STT_PROVIDERS
     result["_tts_providers"] = TTS_PROVIDERS
+    result["_agent_providers"] = AGENT_PROVIDERS
     result["_available_voices"] = [
         {"id": "Polly.Amy", "name": "Amy", "lang": "en-GB", "gender": "Female"},
         {"id": "Polly.Brian", "name": "Brian", "lang": "en-GB", "gender": "Male"},
@@ -1038,33 +982,22 @@ def api_update_settings():
 
 @dashboard_app.route("/api/models", methods=["GET"])
 def list_models():
-    """List available models from Hermes Gateway, Ollama, and LM Studio."""
-    models = {"hermes": [], "ollama": [], "lmstudio": []}
+    """List available models from the configured agent backend."""
+    backend = get_agent_backend()
+    models = {"active": backend.get_models(), "hermes": [], "ollama": [], "lmstudio": []}
 
-    # Hermes Gateway
-    if HERMES_GATEWAY_URL:
+    # Also probe common local endpoints for the UI model picker
+    for name, url in [("ollama", "http://localhost:11434/api/tags"), ("lmstudio", "http://localhost:1234/v1/models")]:
         try:
-            r = http_requests.get(f"{HERMES_GATEWAY_URL}/v1/models", headers=get_auth_headers(), timeout=5)
+            r = http_requests.get(url, timeout=3)
             if r.status_code == 200:
-                models["hermes"] = [m.get("id", "") for m in r.json().get("data", [])]
-        except:
+                data = r.json()
+                if "models" in data:  # Ollama format
+                    models[name] = [m["name"] for m in data["models"]]
+                elif "data" in data:  # OpenAI format
+                    models[name] = [m["id"] for m in data["data"]]
+        except Exception:
             pass
-
-    # Ollama
-    try:
-        r = http_requests.get("http://localhost:11434/api/tags", timeout=3)
-        if r.status_code == 200:
-            models["ollama"] = [m["name"] for m in r.json().get("models", [])]
-    except:
-        pass
-
-    # LM Studio
-    try:
-        r = http_requests.get("http://localhost:1234/v1/models", timeout=3)
-        if r.status_code == 200:
-            models["lmstudio"] = [m["id"] for m in r.json().get("data", [])]
-    except:
-        pass
 
     return jsonify(models)
 
@@ -1097,7 +1030,7 @@ def export_zip():
         zf.writestr("transcripts.txt", "\n".join(lines))
     buffer.seek(0)
     return Response(buffer.getvalue(), mimetype="application/zip",
-                    headers={"Content-Disposition": "attachment; filename=hermes-phone-voicemails.zip"})
+                    headers={"Content-Disposition": "attachment; filename=dialtone-voicemails.zip"})
 
 @dashboard_app.route("/export/transcripts", methods=["GET"])
 def export_transcripts():
@@ -1111,7 +1044,7 @@ def export_transcripts():
         lines.append(f"Transcript: {vm.get('transcript', '(none)')}")
         lines.append("-" * 50)
     return Response("\n".join(lines), mimetype="text/plain",
-                    headers={"Content-Disposition": "attachment; filename=hermes-phone-transcripts.txt"})
+                    headers={"Content-Disposition": "attachment; filename=dialtone-transcripts.txt"})
 
 
 
@@ -1202,10 +1135,11 @@ def run_dashboard():
 if __name__ == "__main__":
     init_voice_engine()
 
-    print(f"📞 Hermes Phone Agent")
+    print(f"📞 Dialtone — AI Phone Agent")
     print(f"   Company: {COMPANY_NAME}")
-    print(f"   Hermes Gateway: {HERMES_GATEWAY_URL or '❌ not configured'}")
-    print(f"   Legacy LLM: {LLM_PROVIDER}/{LLM_MODEL}" if not HERMES_GATEWAY_URL else f"   Legacy LLM: fallback")
+    backend = get_agent_backend()
+    agent_health = backend.health_check()
+    print(f"   Agent: {AGENT_PROVIDER or 'auto'} ({'✅' if agent_health.get('ok') else '⚠️  ' + agent_health.get('error', 'not connected')})")
     print(f"   STT: {'Deepgram' if dg_client else '❌'}")
     print(f"   Twilio: {'✅' if TWILIO_SID else '❌'}")
     print(f"   PIN: {VOICEMAIL_PIN}")

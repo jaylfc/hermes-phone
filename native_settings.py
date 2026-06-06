@@ -67,6 +67,7 @@ TABS = {
         {"key": "USE_LOCAL_VOICE", "label": "Voice Engine (Local)", "type": "dropdown", "source": "local_voice"},
     ],
     "AI Agent": [
+        {"key": "AGENT_PROVIDER", "label": "Agent Backend", "type": "dropdown", "source": "agent_providers"},
         {"key": "HERMES_GATEWAY_URL", "label": "Gateway URL", "type": "text", "placeholder": "http://127.0.0.1:8642"},
         {"key": "HERMES_GATEWAY_TOKEN", "label": "Gateway Token", "type": "secure", "placeholder": "••••••••"},
         {"key": "HERMES_MODEL_OVERRIDE", "label": "Model Override", "type": "text", "placeholder": "Leave empty for agent default"},
@@ -110,6 +111,15 @@ STATIC_DROPDOWNS = {
         ("xiaomi", "Xiaomi MiMo"),
         ("openai", "OpenAI"),
         ("openrouter", "OpenRouter"),
+    ],
+    "agent_providers": [
+        ("", "Auto-detect (recommended)"),
+        ("hermes-gateway", "Hermes Agent (Gateway API)"),
+        ("openai", "OpenAI"),
+        ("xiaomi", "Xiaomi MiMo"),
+        ("openrouter", "OpenRouter"),
+        ("ollama", "Ollama (local)"),
+        ("lmstudio", "LM Studio (local)"),
     ],
 }
 
@@ -312,6 +322,22 @@ class NativeSettingsWindow:
 
     def _populate_dynamic_dropdowns(self, settings):
         """Fill STT/TTS provider and voice dropdowns from API data."""
+        # Agent providers
+        agent_providers = settings.get("_agent_providers", [])
+        if agent_providers and "AGENT_PROVIDER" in self.dropdowns:
+            popup = self.dropdowns["AGENT_PROVIDER"]
+            popup.removeAllItems()
+            current = settings.get("AGENT_PROVIDER", "")
+            for p in agent_providers:
+                name = p.get("name", p.get("id", ""))
+                pid = p.get("id", "")
+                rec = " ⭐" if p.get("recommended") else ""
+                label = f"{name}{rec}"
+                popup.addItemWithTitle_(label)
+                popup.lastItem().setRepresentedObject_(pid)
+                if pid == current:
+                    popup.selectItem_(popup.lastItem())
+
         # STT providers
         stt_providers = settings.get("_stt_providers", [])
         if stt_providers and "STT_PROVIDER" in self.dropdowns:

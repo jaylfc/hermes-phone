@@ -316,6 +316,44 @@ PROVIDER_DEPS = {
             "microsoft/speecht5_tts": {"size": "~1GB", "auto_download": True},
         },
     },
+
+    # ═══════════════════════════════════════════════════════════════
+    # Agent Backends (LLM / AI)
+    # ═══════════════════════════════════════════════════════════════
+    "hermes-gateway": {
+        "name": "Hermes Agent (Gateway API)",
+        "type": "agent",
+        "packages": ["requests"],
+        "pip_install": "pip install requests",
+        "env_vars": ["HERMES_GATEWAY_URL", "HERMES_GATEWAY_TOKEN"],
+        "recommended": True,
+    },
+    "openai": {
+        "name": "OpenAI",
+        "type": "agent",
+        "packages": ["openai"],
+        "pip_install": "pip install openai",
+        "env_vars": ["OPENAI_API_KEY"],
+    },
+    "openrouter": {
+        "name": "OpenRouter",
+        "type": "agent",
+        "packages": ["openai"],
+        "pip_install": "pip install openai",
+        "env_vars": ["OPENROUTER_API_KEY"],
+    },
+    "ollama": {
+        "name": "Ollama (local)",
+        "type": "agent",
+        "packages": [],
+        "env_vars": [],
+    },
+    "lmstudio": {
+        "name": "LM Studio (local)",
+        "type": "agent",
+        "packages": [],
+        "env_vars": [],
+    },
 }
 
 

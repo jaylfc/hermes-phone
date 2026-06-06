@@ -29,8 +29,8 @@ Dashboard (port 5051, auth protected) ←→ Settings, Voicemails, Calls
 ## Quick Start
 
 ```bash
-git clone https://github.com/jaylfc/hermes-phone.git
-cd hermes-phone
+git clone https://github.com/jaylfc/dialtone.git
+cd dialtone
 chmod +x install.sh
 ./install.sh
 ```
