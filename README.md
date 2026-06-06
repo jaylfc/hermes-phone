@@ -1,6 +1,8 @@
 # Dialtone
 
-**Framework-agnostic AI phone agent.** Connect any AI backend to a real phone number via Twilio. Make and receive calls, leave voicemails, manage everything from a web dashboard or native macOS app.
+**Give your AI agent a mouth, ears, and a phone number.**
+
+Dialtone is a framework-agnostic VoIP/IVR service that connects any AI agent backend to a real phone number via Twilio. Plug in Hermes, OpenAI, Ollama, or any OpenAI-compatible endpoint — your agent handles incoming calls, makes outbound calls, takes voicemails, and more. Works on macOS, Linux, and Windows/WSL2.
 
 ## Architecture
 
