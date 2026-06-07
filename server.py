@@ -171,6 +171,11 @@ call_states = {}
 # PIN brute-force tracking: caller -> (fail_count, window_start_ts)
 pin_attempts = {}
 
+# Active browser sessions: session_id -> created_ts (in-memory; cleared on restart).
+# The cookie holds an opaque random id (not the token) so sessions are revocable.
+sessions = {}
+SESSION_TTL = 30 * 24 * 3600
+
 # Serialises read-modify-write on the voicemail metadata file
 _vm_lock = threading.RLock()
 
@@ -200,11 +205,17 @@ def _token_ok():
 
 
 def _cookie_ok():
-    """Browsers authenticate with the HttpOnly session cookie set at login."""
-    if not API_TOKEN:
+    """Browsers authenticate with an HttpOnly session cookie holding an opaque id."""
+    sid = request.cookies.get(SESSION_COOKIE, "")
+    if not sid:
         return False
-    sent = request.cookies.get(SESSION_COOKIE, "")
-    return bool(sent) and secrets.compare_digest(sent, API_TOKEN)
+    created = sessions.get(sid)
+    if created is None:
+        return False
+    if time.time() - created > SESSION_TTL:
+        sessions.pop(sid, None)
+        return False
+    return True
 
 
 def _is_local():
@@ -1399,15 +1410,27 @@ def login():
     if request.method == "POST":
         token = request.form.get("token", "")
         if API_TOKEN and secrets.compare_digest(token, API_TOKEN):
+            sid = secrets.token_urlsafe(32)
+            sessions[sid] = time.time()
             resp = Response("", status=303, headers={"Location": "/"})
             resp.set_cookie(
-                SESSION_COOKIE, API_TOKEN,
-                httponly=True, samesite="Strict", secure=request.is_secure,
-                max_age=30 * 24 * 3600,
+                SESSION_COOKIE, sid,
+                httponly=True, samesite="Strict",
+                secure=request.is_secure or _request_via_proxy(),
+                max_age=SESSION_TTL,
             )
             return resp
         return Response(LOGIN_HTML, mimetype="text/html", status=401)
     return Response(LOGIN_HTML, mimetype="text/html")
+
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    """Invalidate the current browser session (revokes the cookie server-side)."""
+    sessions.pop(request.cookies.get(SESSION_COOKIE, ""), None)
+    resp = Response("", status=303, headers={"Location": "/login"})
+    resp.delete_cookie(SESSION_COOKIE)
+    return resp
 
 
 @app.route("/", methods=["GET"])

@@ -29,6 +29,8 @@ not be exposed unauthenticated.
   Streams work.
 - Keep `HERMES_API_TOKEN` secret. For remote dashboard access, open `https://<host>/` and
   sign in; the token is stored as an HttpOnly cookie and never appears in a URL.
+- Browser sessions are server-side and revocable: visit `/logout` to end the current
+  session, or restart the server to invalidate **all** sessions.
 - Rotate the token by editing `~/.hermes-phone/.env` and restarting the server.
 - Use a non-default `VOICEMAIL_PIN` of reasonable length.
 
