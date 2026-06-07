@@ -37,6 +37,7 @@ import requests as http_requests
 from flask import Flask, request, Response, jsonify
 from flask_sock import Sock
 from twilio.rest import Client as TwilioClient
+from twilio.request_validator import RequestValidator
 from twilio.twiml.voice_response import VoiceResponse, Connect, Gather
 
 # ═══════════════════════════════════════════════════════════════════
@@ -109,6 +110,11 @@ AUTH_COOKIE = "hp_auth"
 # Webhook URL override (use if behind a proxy or different URL)
 WEBHOOK_URL_OVERRIDE = env("WEBHOOK_URL_OVERRIDE")
 
+# Webhook security
+VALIDATE_TWILIO = env("VALIDATE_TWILIO_SIGNATURE", "true").lower() in ("1", "true", "yes")
+PIN_MAX_ATTEMPTS = int(env("PIN_MAX_ATTEMPTS", "5"))
+PIN_LOCKOUT_WINDOW = int(env("PIN_LOCKOUT_WINDOW", "600"))
+
 # Voice engine
 USE_LOCAL_VOICE = env("USE_LOCAL_VOICE", "auto").lower()
 # ═══════════════════════════════════════════════════════════════════
@@ -158,6 +164,59 @@ webhook_app = Flask("webhook")
 dashboard_app = Flask("dashboard")
 dashboard_app.secret_key = secrets.token_hex(32)
 webhook_sock = Sock(webhook_app)
+
+# ── Twilio webhook signature validation (public app) ────────────────
+twilio_validator = RequestValidator(TWILIO_TOKEN) if TWILIO_TOKEN else None
+
+
+@webhook_app.before_request
+def _validate_twilio_signature():
+    """Reject /voice/* webhooks that aren't signed by Twilio.
+
+    Skipped when no auth token is configured (first-run/dev) or when
+    VALIDATE_TWILIO_SIGNATURE=false. The /ws media stream is not guarded here —
+    it only carries audio for an already-connected call.
+    """
+    if not request.path.startswith("/voice/"):
+        return None
+    if not (VALIDATE_TWILIO and twilio_validator):
+        return None
+    signature = request.headers.get("X-Twilio-Signature", "")
+    url = (WEBHOOK_URL_OVERRIDE.rstrip("/") + request.path) if WEBHOOK_URL_OVERRIDE else request.url
+    if not twilio_validator.validate(url, request.form.to_dict(), signature):
+        print(f"⛔ Invalid Twilio signature for {request.path}")
+        return Response("Invalid signature", status=403)
+    return None
+
+
+def _ws_url():
+    """Media Streams require wss://; honour WEBHOOK_URL_OVERRIDE when set."""
+    if WEBHOOK_URL_OVERRIDE:
+        host = WEBHOOK_URL_OVERRIDE.split("://", 1)[-1].rstrip("/")
+        return f"wss://{host}/ws/call"
+    return f"wss://{request.host}/ws/call"
+
+
+# ── PIN brute-force tracking (per caller) ───────────────────────────
+pin_attempts = {}
+
+
+def _pin_locked(caller):
+    rec = pin_attempts.get(caller)
+    if not rec:
+        return False
+    count, first = rec
+    if time.time() - first > PIN_LOCKOUT_WINDOW:
+        pin_attempts.pop(caller, None)
+        return False
+    return count >= PIN_MAX_ATTEMPTS
+
+
+def _record_pin_fail(caller):
+    count, first = pin_attempts.get(caller, (0, time.time()))
+    if time.time() - first > PIN_LOCKOUT_WINDOW:
+        count, first = 0, time.time()
+    pin_attempts[caller] = (count + 1, first)
 
 # ═══════════════════════════════════════════════════════════════════
 # Auth helpers (dashboard only)
@@ -415,6 +474,33 @@ def synthesize_speech(text):
         except Exception as e:
             print(f"MiMo TTS error: {e}")
 
+    # Cloud TTS fallback — OpenAI /audio/speech as raw PCM (24 kHz) → 8 kHz for
+    # Twilio. This covers the common case where the live media-stream voice would
+    # otherwise be silent: TTS_PROVIDER=polly only applies to Twilio <Say>
+    # greetings, not the streaming conversation, so fall back to OpenAI TTS when a
+    # key is available.
+    tts_key = env("OPENAI_TTS_API_KEY", OPENAI_KEY)
+    if tts_key and TTS_PROVIDER in ("openai", "polly"):
+        try:
+            base = env("OPENAI_TTS_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+            resp = http_requests.post(
+                f"{base}/audio/speech",
+                headers={"Authorization": f"Bearer {tts_key}"},
+                json={
+                    "model": env("OPENAI_TTS_MODEL", "tts-1"),
+                    "input": text,
+                    "voice": env("OPENAI_TTS_VOICE", "alloy"),
+                    "response_format": "pcm",
+                },
+                timeout=30,
+            )
+            if resp.status_code == 200 and resp.content:
+                pcm_8k, _ = audioop.ratecv(resp.content, 2, 1, 24000, 8000, None)
+                return pcm_8k
+            print(f"OpenAI TTS error: {resp.status_code} {resp.text[:200]}")
+        except Exception as e:
+            print(f"OpenAI TTS error: {e}")
+
     return None
 
 def send_audio_to_ws(ws, stream_sid, audio_data):
@@ -440,6 +526,25 @@ def send_audio_to_ws(ws, stream_sid, audio_data):
         print(f"Audio send error: {e}")
 
 # ═══════════════════════════════════════════════════════════════════
+# Deepgram (prerecorded transcription — SDK v7)
+# ═══════════════════════════════════════════════════════════════════
+
+def _deepgram_transcribe_file(audio_bytes):
+    """Transcribe audio bytes with Deepgram SDK v7 (listen.v1.media). Returns text or ""."""
+    if not dg_client:
+        return ""
+    try:
+        response = dg_client.listen.v1.media.transcribe_file(
+            request=audio_bytes, model="nova-2", language="en",
+            punctuate=True, smart_format=True,
+        )
+        return response.results.channels[0].alternatives[0].transcript or ""
+    except Exception as e:
+        print(f"⚠️ Deepgram transcription failed: {e}")
+        return ""
+
+
+# ═══════════════════════════════════════════════════════════════════
 # Telegram notifications
 # ═══════════════════════════════════════════════════════════════════
 
@@ -456,15 +561,8 @@ def notify_telegram(recording_url, caller, duration, transcription=""):
             wav_path = f.name
 
         transcript_text = transcription
-        if not transcript_text and dg_client:
-            try:
-                payload = {"buffer": r.content}
-                options = {"model": "nova-2", "language": "en", "punctuate": True}
-                response = dg_client.listen.rest.v("1").transcribe_file(payload, options)
-                if response and response.results:
-                    transcript_text = response.results.channels[0].alternatives[0].transcript
-            except Exception as e:
-                print(f"⚠️ Deepgram transcription failed: {e}")
+        if not transcript_text:
+            transcript_text = _deepgram_transcribe_file(r.content)
 
         caller_display = caller.replace("+", "")
         caption = f"📞 Voicemail from {caller_display}\n⏱️ {duration}s"
@@ -513,17 +611,19 @@ def check_pin():
     digits = request.form.get("Digits", "")
     call_sid = request.form.get("CallSid", "unknown")
     caller = get_caller_info(request.form)
-    print(f"🔑 PIN check: {digits} (expected {VOICEMAIL_PIN})")
-
     resp = VoiceResponse()
-    if VOICEMAIL_PIN and digits == VOICEMAIL_PIN:
+    locked = _pin_locked(caller)
+    if (not locked) and VOICEMAIL_PIN and hmac.compare_digest(digits, VOICEMAIL_PIN):
+        pin_attempts.pop(caller, None)
         print(f"✅ PIN correct — connecting {caller} to AI")
         resp.say("Connecting you now.", voice=TTS_VOICE, language=TTS_LANGUAGE)
         connect = Connect()
-        connect.stream(url=f"wss://{request.host}/ws/call")
+        connect.stream(url=_ws_url())
         resp.append(connect)
     else:
-        print(f"❌ Wrong PIN: {digits}")
+        if not locked:
+            _record_pin_fail(caller)
+        print(f"❌ PIN rejected for {caller}")
         resp.say("Please leave a message after the tone. Press hash when finished.",
                  voice=TTS_VOICE, language=TTS_LANGUAGE)
         resp.record(action="/voice/voicemail-complete", method="POST", max_length=VOICEMAIL_MAX_LENGTH,
@@ -581,15 +681,8 @@ def _process_voicemail(recording_sid, recording_url, caller, duration, transcrip
                 transcript = voice_engine.transcribe(str(audio_path))
             except Exception as e:
                 print(f"⚠️ Local STT failed: {e}")
-        if not transcript and dg_client:
-            try:
-                payload = {"buffer": r.content}
-                options = {"model": "nova-2", "language": "en", "punctuate": True}
-                response = dg_client.listen.rest.v("1").transcribe_file(payload, options)
-                if response and response.results:
-                    transcript = response.results.channels[0].alternatives[0].transcript
-            except Exception as e:
-                print(f"⚠️ Deepgram transcription failed: {e}")
+        if not transcript:
+            transcript = _deepgram_transcribe_file(r.content)
 
         voicemails = load_voicemails()
         for vm in voicemails:
@@ -609,7 +702,7 @@ def handle_outgoing():
     print(f"📱 Outgoing connected: {call_sid}")
     resp = VoiceResponse()
     connect = Connect()
-    connect.stream(url=f"wss://{request.host}/ws/call")
+    connect.stream(url=_ws_url())
     resp.append(connect)
     return Response(str(resp), mimetype="text/xml")
 

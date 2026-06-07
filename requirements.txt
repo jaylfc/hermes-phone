@@ -1,7 +1,7 @@
 flask>=3.0
 flask-sock>=0.7
 twilio>=9.0
-deepgram-sdk>=4.0
+deepgram-sdk>=7,<8
 openai>=1.50
 requests>=2.31
 pydub>=0.25
