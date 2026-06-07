@@ -1,236 +1,366 @@
 # 📞 Hermes Phone
 
-**AI-powered phone agent for macOS — voicemail, AI conversations, and call management from your menu bar.**
+**A macOS menu-bar AI phone agent built on Twilio.**
 
-Turn your Mac into an intelligent phone system. Incoming calls get an AI assistant or voicemail. Outgoing calls are powered by any OpenAI-compatible LLM. Everything managed from a clean macOS menu bar app.
+Inbound callers hit a PIN gate — enter the right PIN and you're connected to a live AI conversation (STT → LLM → TTS over a Twilio Media Streams websocket); everyone else gets voicemail with a transcript. Outbound AI calls go out with a single click. Everything is managed from a 📞 icon in your macOS menu bar.
 
 ![macOS](https://img.shields.io/badge/macOS-13%2B-blue)
 ![Python](https://img.shields.io/badge/Python-3.11%2B-green)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)
+
+---
 
 ## ✨ Features
 
-- **📞 AI Phone Agent** — Incoming calls connect to any OpenAI-compatible LLM (GPT-4, Claude, MiMo, local models)
-- **🔒 PIN-Gated Access** — Hidden PIN bypass lets you reach the AI while others get voicemail
-- **🎙️ Voicemail Manager** — Menu bar app shows voicemails with transcripts, playback, delete, and callback
-- **📤 Outbound Calls** — Make AI-powered calls from the menu bar or API
-- **🌍 Works Worldwide** — Any Twilio number (US, UK, EU, AU, and 180+ countries)
-- **🚀 One-Click Install** — `curl -sSL ... | bash` sets up everything
+- **📞 Inbound AI calls via PIN gate** — Callers hear a greeting and can dial a PIN to bypass voicemail and reach a live AI conversation (STT → LLM → TTS over a Twilio Media Streams websocket)
+- **🎙️ Voicemail + transcription** — Everyone else leaves a voicemail; recordings are transcribed locally with mlx-whisper or via Deepgram
+- **📤 Outbound AI calls** — Initiate AI-powered calls via the menu bar, dashboard, or `POST /call`
+- **🖥️ Web dashboard + settings page** — Browser UI at `http://localhost:5050/` for voicemail playback, call management, and live settings editing
+- **📱 Full macOS menu-bar app** — Start/stop/restart the server, browse/play/delete/call-back voicemails, make calls, edit settings, and view logs — all from the menu bar
+- **📬 Optional Telegram notifications** — New voicemails with transcripts sent straight to your Telegram
+- **🤖 Any OpenAI-compatible LLM** — OpenAI, OpenRouter, Xiaomi MiMo, Ollama, vLLM, or any compatible API
+- **🍎 Fully-local voice on Apple Silicon** — `mlx-whisper` (STT) + Kokoro TTS via `mlx-audio` (TTS); cloud fallback via OpenAI TTS and Deepgram STT
+- **📦 Voicemail export** — Download all voicemails as a ZIP (audio + transcripts) or export transcripts as plain text
+- **🌍 Works worldwide** — Any Twilio number (US, UK, EU, AU, and 180+ countries)
+
+---
 
 ## 📋 Requirements
 
 - macOS 13+ (Ventura or later)
 - Python 3.11+
 - [Twilio](https://twilio.com) account + phone number
-- [Deepgram](https://console.deepgram.com) API key (free $200 credit)
+- [Deepgram](https://console.deepgram.com) API key (free $200 credit — optional if using local voice)
 - Any OpenAI-compatible LLM API key
+
+---
 
 ## 🚀 Quick Start
 
 ```bash
-# Install
 git clone https://github.com/jaylfc/hermes-phone.git
 cd hermes-phone
 ./install.sh
-
-# Or one-liner:
-curl -sSL https://raw.githubusercontent.com/jaylfc/hermes-phone/main/install.sh | bash
 ```
 
-The installer will:
-1. Install Python dependencies
-2. Ask for your API keys (Twilio, Deepgram, LLM)
-3. Configure your phone number webhook
-4. Install macOS LaunchAgents (auto-start on login)
-5. Add a 📞 menu bar app to your system
+The installer:
+1. Checks Python 3.11+ is available
+2. Creates `~/.hermes-phone/` and copies the app files
+3. Creates a Python virtualenv and installs dependencies
+4. Runs a setup wizard for Twilio, Deepgram, LLM provider, PIN, and optional Telegram
+5. Generates a `HERMES_API_TOKEN` for secure remote access
+6. Installs macOS LaunchAgents (auto-start on login)
+7. Starts both the server and the 📞 menu bar app immediately
+
+---
 
 ## ⚙️ Configuration
 
-Edit `~/.hermes-phone/.env`:
+Edit `~/.hermes-phone/.env` (written `chmod 600` by the installer):
 
 ```bash
-# Twilio
+# ── Twilio ──────────────────────────────────────────────────────────
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_PHONE_NUMBER=+443xxxxxxxxx
 
-# Deepgram (STT)
+# ── Deepgram (STT fallback) ──────────────────────────────────────────
 DEEPGRAM_API_KEY=your_deepgram_key
 
-# LLM (any OpenAI-compatible API)
-OPENAI_API_KEY=your_key
+# ── LLM (any OpenAI-compatible API) ─────────────────────────────────
+OPENAI_API_KEY=sk-xxxxxxxxxxxx
 OPENAI_BASE_URL=https://api.openai.com/v1
-LLM_MODEL=gpt-4o
+LLM_MODEL=gpt-4o-mini
 
-# Phone Agent
-VOICEMAIL_PIN=1234
-COMPANY_NAME=Your Company
-VOICEMAIL_EMAIL=hello@yourcompany.com
+# ── Phone agent settings ─────────────────────────────────────────────
+VOICEMAIL_PIN=1234              # PIN callers dial during greeting to reach AI
+COMPANY_NAME=Your Company Name
+VOICEMAIL_EMAIL=hello@yourcompany.com   # Mentioned in the default greeting
+VOICEMAIL_MAX_LENGTH=120               # Max voicemail recording in seconds
+VOICEMAIL_GREETING=                    # Leave blank for default; set a custom greeting
+
+# ── Voice / TTS ──────────────────────────────────────────────────────
+TTS_VOICE=Polly.Amy             # Twilio Polly voice for system messages
+TTS_LANGUAGE=en-GB
+USE_LOCAL_VOICE=auto            # auto | true | false
+
+# Cloud TTS fallback (OpenAI) — used when local MLX is unavailable
+# OPENAI_TTS_API_KEY=sk-...
+# OPENAI_TTS_BASE_URL=https://api.openai.com/v1
+# OPENAI_TTS_MODEL=tts-1
+# OPENAI_TTS_VOICE=alloy
+
+# ── Call settings ────────────────────────────────────────────────────
+CALL_GOAL=Have a helpful conversation.
+# CALL_SYSTEM_PROMPT=            # Override the default AI system prompt
+
+# ── Telegram notifications (optional) ───────────────────────────────
+# TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
+# TELEGRAM_CHAT_ID=your_chat_id
+
+# ── Security / networking ────────────────────────────────────────────
+# PUBLIC_URL=https://your-subdomain.ngrok.app  # Required for AI calls + signature validation
+# HERMES_API_TOKEN=your_long_random_token      # Auto-generated by installer
+# VALIDATE_TWILIO_SIGNATURE=true               # Set false only for local dev
+# HERMES_DEBUG=false                           # Never enable on a network-facing host
+# HERMES_HOST=0.0.0.0
+# HERMES_PORT=5050
+
+# ── PIN brute-force protection ───────────────────────────────────────
+# PIN_MAX_ATTEMPTS=5
+# PIN_LOCKOUT_WINDOW=600         # Lockout window in seconds
 ```
+
+---
 
 ## 📞 How It Works
 
-### Incoming Calls
+### Inbound calls
+
 ```
-Caller → Twilio → Your Mac
+Caller → Twilio → Your Mac (/voice/incoming)
   │
-  ├─ Enters PIN (1234#) → AI conversation (STT → LLM → TTS)
+  ├─ Enters PIN during greeting → /voice/check-pin
+  │     ✅ Correct PIN → AI conversation (STT → LLM → TTS over wss://…/ws/call)
+  │     ❌ Wrong / too many attempts → voicemail (no hint a PIN exists)
   │
-  └─ No PIN → Greeting → Beep → Voicemail recording
-       → Transcribed → Sent to menu bar + Telegram (optional)
+  └─ No PIN entered → Beep → Voicemail recording
+        → Downloaded + transcribed (local mlx-whisper or Deepgram)
+        → Stored in voicemails/ + optional Telegram notification
 ```
 
-### Outgoing Calls
+### Outbound calls
+
 ```
-Menu Bar / API → Twilio → Recipient
-  │
-  └─ Connected → AI conversation (STT → LLM → TTS)
+Menu bar / Dashboard / POST /call → Twilio dials recipient
+  └─ Connected → AI conversation (STT → LLM → TTS over wss://…/ws/call)
 ```
+
+---
 
 ## 🖥️ Menu Bar App
 
-The 📞 menu bar icon gives you:
+The 📞 menu bar icon gives you full control without opening a browser:
 
-- **Status indicator** — 🟢 running / 🔴 stopped
-- **Start/Stop/Restart** — Control the phone agent server
-- **Voicemail Manager** — View, play, delete voicemails with transcripts
-- **Make Call** — Start an outbound AI call
-- **Logs** — View server logs
+| Item | What it does |
+|------|-------------|
+| Status indicator | 🟢 running (shows provider/model/voicemail count) / 🔴 stopped |
+| Start / Stop / Restart | Control the phone agent server via launchctl |
+| 📞 Make Call… | Prompt for a number and start an outbound AI call |
+| 🎙️ Voicemails | Per-voicemail submenu: transcript preview, ▶️ Play, 📞 Call Back, 🗑️ Delete; plus ZIP and transcript export |
+| ⚙️ Settings | Voice selector, voice engine mode (auto/local/cloud), edit company name/email/greeting/PIN |
+| 🌐 Open Dashboard | Opens `http://localhost:5050/` in your browser |
+| 📋 View Logs | Opens `server.log` in macOS Console |
 
-## 🔌 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/call` | POST | Make outbound call `{"to": "+447xxx", "goal": "..."}` |
-| `/voicemails` | GET | List all voicemails |
-| `/health` | GET | Server health check |
+---
 
 ## 🌐 Network Setup
 
-> **AI calls need HTTPS/WSS.** Twilio Media Streams only connect over `wss://`, so the
-> server must sit behind TLS. A plain `http://` port-forward works for voicemail but **not**
-> for live AI conversations — use a TLS tunnel or reverse proxy.
+> **AI calls require HTTPS/WSS.** Twilio Media Streams only connect over `wss://`, so the server must sit behind TLS. A plain `http://` tunnel works for voicemail-only mode, but live AI conversations need a TLS-terminated connection.
 
 ### Recommended: ngrok (or any TLS tunnel)
+
 ```bash
 brew install ngrok
 ngrok config add-authtoken YOUR_TOKEN
 ngrok http 5050
 ```
-Then in `~/.hermes-phone/.env` set `PUBLIC_URL` to the https URL ngrok prints, and point your
-Twilio Voice webhook to `<PUBLIC_URL>/voice/incoming`. `PUBLIC_URL` also lets the server verify
-Twilio's request signatures.
 
-### Advanced: static IP / domain with TLS
-Terminate TLS (Caddy, nginx, Cloudflare Tunnel, …) in front of port `5050`, set `PUBLIC_URL` to
-that https origin, and point the Twilio webhook at `<PUBLIC_URL>/voice/incoming`.
+Then set `PUBLIC_URL` in `~/.hermes-phone/.env` to the `https://` URL ngrok prints, and point your Twilio Voice webhook to `<PUBLIC_URL>/voice/incoming`. `PUBLIC_URL` also enables Twilio request signature validation.
 
-> ⚠️ **Don't expose port 5050 directly to the internet.** Only `/voice/*` (Twilio,
-> signature-validated) and `/ws/call` need to be reachable. See [Security](#-security).
+### Advanced: static domain with TLS
 
-## 🔒 Security
+Terminate TLS in front of port 5050 (Caddy, nginx, Cloudflare Tunnel, …), set `PUBLIC_URL` to your `https://` origin, and point the Twilio webhook at `<PUBLIC_URL>/voice/incoming`.
 
-- **Webhooks** are verified with Twilio request signatures (set `PUBLIC_URL` and keep
-  `TWILIO_AUTH_TOKEN` correct; disable only for local dev with `VALIDATE_TWILIO_SIGNATURE=false`).
-- **Dashboard & API** (`/`, `/call`, `/voicemails`, `/api/settings`, exports, `/health`) trust
-  **direct localhost** automatically — the menu bar and a local browser just work. For remote
-  access through a tunnel, the installer generates `HERMES_API_TOKEN`; open `<PUBLIC_URL>/`
-  and sign in with it (stored as an HttpOnly session cookie — never placed in a URL). API
-  clients pass it as `X-Hermes-Token` / `Authorization: Bearer`.
-- The PIN gate is **rate-limited** (`PIN_MAX_ATTEMPTS`, `PIN_LOCKOUT_WINDOW`).
-- `.env` is written `chmod 600`; debug mode is **off** by default (never enable it on a
-  network-facing host).
-
-## 🤖 AI Provider Support
-
-Works with any OpenAI-compatible API:
-
-| Provider | Base URL | Notes |
-|----------|----------|-------|
-| OpenAI | `https://api.openai.com/v1` | GPT-4o, GPT-4-mini |
-| Anthropic (via proxy) | `https://api.anthropic.com/v1` | Claude |
-| Xiaomi MiMo | `https://token-plan-ams.xiaomimimo.com/v1` | Free tier available |
-| Ollama | `http://localhost:11434/v1` | Local models |
-| vLLM | `http://localhost:8000/v1` | Self-hosted |
-| OpenRouter | `https://openrouter.ai/api/v1` | 100+ models |
-
-## 📁 File Locations
-
-```
-~/.hermes-phone/
-├── .env              # API keys & config
-├── server.py         # VoIP server
-├── menubar.py        # Menu bar app
-├── server.log        # Server logs
-└── voicemails/       # Recorded voicemails
-    ├── audio/        # WAV files
-    └── metadata.json # Transcripts & metadata
-```
-
-## 🛠️ Development
-
-```bash
-# Clone and setup
-git clone https://github.com/jaylfc/hermes-phone.git
-cd hermes-phone
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Run server
-python3 server.py
-
-# Run menu bar app
-python3 menubar.py
-```
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE)
-
-## 🙏 Built With
-
-- [Twilio](https://twilio.com) — Voice infrastructure
-- [Deepgram](https://deepgram.com) — Speech-to-text
-- [Flask](https://flask.palletsprojects.com) — Web server
-- [rumps](https://github.com/jaredks/rumps) — macOS menu bar framework
+> ⚠️ **Do not expose port 5050 directly to the internet.** Only `/voice/*` (Twilio, signature-validated) and `/ws/call` need to be reachable externally. See [Security](#-security).
 
 ---
 
-**Made by [JAN Labs](https://janlabs.co.uk)**
+## 🔒 Security
+
+- **Twilio webhook validation** — all `/voice/*` routes verify Twilio request signatures using `TWILIO_AUTH_TOKEN`. Requires `PUBLIC_URL` to be set. Disable only for local development with `VALIDATE_TWILIO_SIGNATURE=false`.
+
+- **Control-plane authentication** — the dashboard and all API endpoints use `require_auth`:
+  - **Direct localhost** is always trusted (the menu bar and a local browser just work).
+  - **Remote access** (anything arriving through a tunnel or reverse proxy) must authenticate with either:
+    - A **session cookie** — sign in at `/login` with `HERMES_API_TOKEN`; the server issues an `HttpOnly + Secure + SameSite=Strict` session cookie (30-day TTL, server-side revocable).
+    - A **header token** — `X-Hermes-Token: <token>` or `Authorization: Bearer <token>` for API clients.
+  - Tokens are never accepted in URLs to prevent leaking into logs or browser history.
+
+- **PIN rate-limiting / lockout** — failed PIN attempts are tracked per caller; after `PIN_MAX_ATTEMPTS` failures within `PIN_LOCKOUT_WINDOW` seconds the caller is silently routed to voicemail with no hint that a PIN gate exists.
+
+- **Werkzeug debug mode** — `HERMES_DEBUG` defaults to `false`; enabling debug mode on a network-facing host exposes a remote code execution interface.
+
+- **`.env` permissions** — the installer writes `~/.hermes-phone/.env` as `chmod 600`.
+
+---
+
+## 🤖 AI Provider Support
+
+Works with any OpenAI-compatible API. The server selects the provider based on which key is set (`LLM_PROVIDER=xiaomi` → Xiaomi; `OPENROUTER_API_KEY` present → OpenRouter; otherwise `OPENAI_API_KEY`):
+
+| Provider | `OPENAI_BASE_URL` | Notes |
+|----------|-------------------|-------|
+| OpenAI | `https://api.openai.com/v1` | GPT-4o, GPT-4o-mini |
+| OpenRouter | `https://openrouter.ai/api/v1` | 100+ models |
+| Xiaomi MiMo | `https://token-plan-ams.xiaomimimo.com/v1` | Free tier; also supports MiMo TTS |
+| Ollama | `http://localhost:11434/v1` | Fully local LLM |
+| vLLM | `http://localhost:8000/v1` | Self-hosted |
+| Any other | your endpoint | Must be OpenAI-compatible |
+
+---
 
 ## 🍎 Local Mode (Apple Silicon)
 
-Hermes Phone can run **100% offline** on Apple Silicon Macs using MLX-optimized models:
+On Apple Silicon Macs, Hermes Phone can run STT and TTS entirely offline using MLX-optimized models:
 
-| Component | Model | Size | Speed |
+| Component | Model | Size | Notes |
 |-----------|-------|------|-------|
-| **STT** | mlx-whisper (large-v3-turbo) | ~1.6GB | Real-time |
-| **TTS** | mlx-audio (Kokoro-82M 4-bit) | ~50MB | 2-3x real-time |
-| **LLM** | Any OpenAI-compatible (Ollama, vLLM) | varies | varies |
+| **STT** | mlx-whisper (whisper-large-v3-turbo) | ~1.6 GB | Real-time, downloaded on first use |
+| **TTS** | mlx-audio (Kokoro-82M 4-bit) | ~50 MB | 2–3× real-time, downloaded on first use |
+| **LLM** | Any OpenAI-compatible | varies | Use Ollama for a fully offline setup |
 
-### Enable local mode
+### Enable local voice
 
 ```bash
-# In .env:
-USE_LOCAL_VOICE=auto  # auto-detect, fall back to cloud
+# In ~/.hermes-phone/.env:
+USE_LOCAL_VOICE=auto   # auto-detect; fall back to cloud if MLX not available
+# USE_LOCAL_VOICE=true   # require local (installs mlx-whisper + mlx-audio if missing)
+# USE_LOCAL_VOICE=false  # always use cloud (Deepgram STT + OpenAI TTS)
+```
 
-# Or install manually:
+Or install manually:
+
+```bash
 pip install mlx-whisper mlx-audio
-
-# Models download automatically on first use
 ```
 
 ### Fully offline setup
 
 ```bash
-# STT + TTS: local MLX
 USE_LOCAL_VOICE=true
 
-# LLM: local via Ollama
+# LLM via Ollama
 OPENAI_API_KEY=ollama
 OPENAI_BASE_URL=http://localhost:11434/v1
 LLM_MODEL=llama3
 ```
 
 Zero API costs. Zero cloud dependency. Works on a plane.
+
+**Fallback chain (TTS):** local MLX → MiMo TTS (if `LLM_PROVIDER=xiaomi`) → OpenAI TTS (`OPENAI_TTS_API_KEY`)
+**Fallback chain (STT — voicemail transcription):** local mlx-whisper → Deepgram
+
+---
+
+## 🔌 API Endpoints
+
+All control-plane routes require auth (localhost trusted; remote requires session cookie or header token — see [Security](#-security)).
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/` | required | Web dashboard (voicemails + settings) |
+| `GET` | `/health` | required | Server health check and status |
+| `POST` | `/call` | required | Start outbound AI call `{"to": "+447…", "goal": "…"}` |
+| `GET` | `/voicemails` | required | List all voicemails (JSON) |
+| `DELETE` | `/voicemails/<sid>` | required | Delete a voicemail |
+| `GET` | `/voicemails/<sid>/audio` | required | Serve voicemail WAV file |
+| `GET` | `/api/settings` | required | Get current settings (sensitive values masked) |
+| `POST` | `/api/settings` | required | Update allowed settings |
+| `GET` | `/export/zip` | required | Download all voicemails as ZIP |
+| `GET` | `/export/transcripts` | required | Download all transcripts as plain text |
+| `GET/POST` | `/login` | — | Exchange `HERMES_API_TOKEN` for a session cookie |
+| `GET/POST` | `/logout` | — | Invalidate current session cookie |
+| `POST` | `/voice/incoming` | Twilio sig | Inbound call webhook (greeting + PIN gather) |
+| `POST` | `/voice/check-pin` | Twilio sig | PIN validation webhook |
+| `POST` | `/voice/voicemail-complete` | Twilio sig | Post-recording callback |
+| `POST` | `/voice/recording-ready` | Twilio sig | Transcription + storage callback |
+| `POST` | `/voice/outgoing` | Twilio sig | Outbound call connect webhook |
+| `POST` | `/voice/status` | Twilio sig | Call status callback (logs transcript) |
+| `WS` | `/ws/call` | — | Twilio Media Streams websocket (STT → LLM → TTS) |
+
+---
+
+## 📁 File Locations
+
+```
+~/.hermes-phone/
+├── .env                  # API keys & config (chmod 600)
+├── server.py             # Flask VoIP server
+├── menubar.py            # macOS menu bar app (rumps)
+├── local_voice.py        # MLX voice engine (Apple Silicon)
+├── requirements.txt      # Runtime dependencies
+├── server.log            # Server stdout/stderr
+├── voicemails/
+│   ├── audio/            # WAV files (named by Twilio RecordingSid)
+│   └── metadata.json     # Transcripts & metadata for all voicemails
+└── venv/                 # Python virtualenv (created by installer)
+```
+
+---
+
+## 🛠️ Development
+
+```bash
+git clone https://github.com/jaylfc/hermes-phone.git
+cd hermes-phone
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run the server
+python3 server.py
+
+# Run the menu bar app (separate terminal)
+python3 menubar.py
+
+# Run tests
+pip install -r requirements-dev.txt
+pytest
+```
+
+---
+
+## 🗺️ Roadmap
+
+### Near-term
+- **Barge-in / interruption handling** — let the caller interrupt the AI mid-sentence
+- **Smarter end-of-utterance detection** — configurable speech endpointing to reduce latency
+- **Structured logging + rotation** — JSON logs with automatic size-based rotation
+- **Known-caller allowlist** — saved numbers skip the PIN gate and connect directly to AI
+- **Email voicemails** — forward new voicemails to `VOICEMAIL_EMAIL` automatically
+- **Business-hours / after-hours routing** — different behaviour outside configured hours
+
+### Later
+- Inbound SMS with AI auto-reply
+- LLM tool/function calling (booking, calendar lookup, send message)
+- Record + transcribe AI call sessions (not just voicemail)
+- Per-caller memory — persistent context across calls from the same number
+- Spam / robocall screening
+- Docker + Linux server option
+- Multi-language conversations
+- Voicemail search and filtering in the dashboard
+- Pluggable premium TTS (e.g. ElevenLabs)
+
+---
+
+## 📄 License
+
+**PolyForm Noncommercial License 1.0.0**
+
+Hermes Phone is **source-available** and free to use, modify, and share for any **non-commercial purpose**. Commercial use requires a separate license from the maintainer. This is not an OSI open-source license. See the [LICENSE](LICENSE) file for the full terms.
+
+---
+
+## 🙏 Built With
+
+- [Twilio](https://twilio.com) — Voice infrastructure & Media Streams
+- [Deepgram](https://deepgram.com) — Cloud speech-to-text
+- [Flask](https://flask.palletsprojects.com) + [flask-sock](https://github.com/miguelgrinberg/flask-sock) — Web server & WebSocket
+- [rumps](https://github.com/jaredks/rumps) — macOS menu bar framework
+- [mlx-whisper](https://github.com/ml-explore/mlx-examples) — Apple Silicon STT
+- [mlx-audio / Kokoro](https://github.com/Blaizzy/mlx-audio) — Apple Silicon TTS
+
+---
+
+**Made by [JAN Labs](https://janlabs.co.uk)**
