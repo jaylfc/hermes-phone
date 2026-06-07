@@ -39,17 +39,17 @@ When `AGENT_PROVIDER` is set to `hermes-gateway` or left on `auto`, Dialtone aut
 
 ```
                         ┌──────────────────────────────────────────┐
-  Caller ←→ Twilio ←→  │  Dialtone Server                         │
+  Caller ←→ Twilio ←→   │  Dialtone Server                         │
                         │                                          │
-                        │  ┌────────┐   ┌─────────┐   ┌────────┐  │
-                        │  │  STT   │──→│  Agent   │──→│  TTS   │  │
-                        │  │Provider│   │ Backend  │   │Provider│  │
-                        │  └────────┘   └────┬────┘   └────────┘  │
+                        │  ┌────────┐   ┌─────────┐   ┌────────┐   │
+                        │  │  STT   │──→│  Agent  │──→│  TTS   │   │
+                        │  │Provider│   │ Backend │   │Provider│   │
+                        │  └────────┘   └────┬────┘   └────────┘   │
                         │       9 providers  │  5+ providers       │
                         │               10 providers               │
                         │                    │                     │
-                        │              ┌─────▼─────┐              │
-                        │              │  Voicemail │──→ Telegram  │
+                        │              ┌─────▼─────┐               │
+                        │              │  Voicemail│──→ Telegram   │
                         │              └───────────┘               │
                         └──────────────────────────────────────────┘
 
