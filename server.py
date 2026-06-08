@@ -77,10 +77,12 @@ HERMES_GATEWAY_TOKEN = env("HERMES_GATEWAY_TOKEN")
 # Model override (use specific model instead of agent default)
 HERMES_MODEL_OVERRIDE = env("HERMES_MODEL_OVERRIDE")
 
-# Legacy LLM (fallback if Hermes Gateway not available)
-AGENT_PROVIDER = env("AGENT_PROVIDER", "")
-LLM_PROVIDER = env("LLM_PROVIDER", "xiaomi")
-LLM_MODEL = env("LLM_MODEL", "mimo-v2.5")
+# Legacy LLM (fallback if Hermes Gateway not available).
+# Offline-by-default: a fresh install runs a local Ollama model + local voice, so
+# no API keys are needed except Twilio. Override any of these from the dashboard.
+AGENT_PROVIDER = env("AGENT_PROVIDER", "ollama")
+LLM_PROVIDER = env("LLM_PROVIDER", "ollama")
+LLM_MODEL = env("LLM_MODEL", "qwen3:8b")  # installer tiers this by Mac RAM
 XIAOMI_KEY = env("XIAOMI_API_KEY")
 XIAOMI_BASE_URL = env("XIAOMI_BASE_URL", "https://token-plan-ams.xiaomimimo.com/v1")
 OPENAI_KEY = env("OPENAI_API_KEY")
@@ -145,7 +147,7 @@ USE_LOCAL_VOICE = env("USE_LOCAL_VOICE", "auto").lower()
 # STT Provider Configuration
 # ═══════════════════════════════════════════════════════════════════
 # Options: deepgram, assemblyai, google, azure, whisper, groq, speechmatics, local
-STT_PROVIDER = env("STT_PROVIDER", "deepgram")
+STT_PROVIDER = env("STT_PROVIDER", "whisper")  # local STT by default (no key)
 # Provider-specific API keys
 ASSEMBLYAI_API_KEY = env("ASSEMBLYAI_API_KEY")
 GOOGLE_STT_CREDENTIALS = env("GOOGLE_STT_CREDENTIALS")  # Path to JSON key file
@@ -158,7 +160,7 @@ SPEECHMATICS_API_KEY = env("SPEECHMATICS_API_KEY")
 # TTS Provider Configuration
 # ═══════════════════════════════════════════════════════════════════
 # Options: polly, elevenlabs, openai, azure, google, cartesia, deepgram_aura, kokoro, edge, mimo
-TTS_PROVIDER = env("TTS_PROVIDER", "polly")
+TTS_PROVIDER = env("TTS_PROVIDER", "kokoro")  # local TTS by default (no key)
 # Provider-specific API keys
 ELEVENLABS_API_KEY = env("ELEVENLABS_API_KEY")
 ELEVENLABS_VOICE_ID = env("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")  # Rachel

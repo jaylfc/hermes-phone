@@ -80,6 +80,38 @@ VENV_PY="$VENV_DIR/bin/python3"
 "$VENV_PY" -m pip install --quiet -r "$INSTALL_DIR/requirements.txt"
 echo -e "${GREEN}  ✅ Dependencies installed into $VENV_DIR${NC}"
 
+# ── Offline AI: local LLM (Ollama) + local voice (MLX) — no API keys ──
+echo ""
+echo -e "${BLUE}Setting up offline AI (local models — keyless)...${NC}"
+
+# Local voice on Apple Silicon: mlx-whisper (STT) + mlx-audio/Kokoro (TTS)
+"$VENV_PY" -m pip install --quiet mlx-whisper mlx-audio 2>/dev/null \
+  && echo -e "${GREEN}  ✅ Local voice (mlx-whisper + mlx-audio) installed${NC}" \
+  || echo -e "${YELLOW}  ⚠️  Local voice deps skipped (Apple Silicon only) — cloud voice still works${NC}"
+
+# Local LLM via Ollama — choose a model by RAM tier (override later via LLM_MODEL)
+RAM_GB=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 17179869184) / 1073741824 ))
+if   [[ "$RAM_GB" -ge 48 ]]; then OLLAMA_MODEL="qwen3:32b"
+elif [[ "$RAM_GB" -ge 24 ]]; then OLLAMA_MODEL="qwen3:14b"
+else                              OLLAMA_MODEL="qwen3:8b"
+fi
+echo -e "${CYAN}  Detected ${RAM_GB}GB RAM → local model: ${OLLAMA_MODEL}${NC}"
+if ! command -v ollama &>/dev/null; then
+    echo -e "${YELLOW}  Installing Ollama...${NC}"
+    brew install ollama 2>/dev/null || curl -fsSL https://ollama.com/install.sh 2>/dev/null | sh 2>/dev/null || true
+fi
+if command -v ollama &>/dev/null; then
+    (ollama serve >/dev/null 2>&1 &) ; sleep 2 || true
+    echo -e "${CYAN}  Pulling ${OLLAMA_MODEL} (first run downloads a few GB)...${NC}"
+    if ollama pull "$OLLAMA_MODEL" 2>/dev/null; then
+        echo -e "${GREEN}  ✅ ${OLLAMA_MODEL} ready${NC}"
+    else
+        echo -e "${YELLOW}  ⚠️  Couldn't pull ${OLLAMA_MODEL}; run 'ollama pull ${OLLAMA_MODEL}' later (or set LLM_MODEL to another).${NC}"
+    fi
+else
+    echo -e "${YELLOW}  ⚠️  Ollama not installed — get it at https://ollama.com, then: ollama pull ${OLLAMA_MODEL}${NC}"
+fi
+
 # ── Setup wizard ───────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}═══ Setup Wizard ═══${NC}"
