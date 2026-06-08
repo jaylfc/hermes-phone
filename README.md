@@ -443,7 +443,9 @@ Workflow:
 
 ## License
 
-MIT
+**MIT License + [Commons Clause](https://commonsclause.com/)** — see [LICENSE](LICENSE).
+
+Free to use, modify, and self-host. The Commons Clause adds a single restriction on top of MIT: you may **not Sell** the software — you can't charge for the software itself or offer it as a paid hosted/managed service whose value derives substantially from it. Everything else MIT permits is allowed. (Source-available; not an OSI-approved open-source license.)
 
 ---
 
