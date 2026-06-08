@@ -38,33 +38,53 @@ AGENT_DIR = Path(__file__).parent
 ICON_DIR = AGENT_DIR / "icons"
 ICON_GREEN = str(ICON_DIR / "phone_green.png")
 ICON_RED = str(ICON_DIR / "phone_red.png")
-HEALTH_URL = "http://localhost:5050/health"
-VOICEMAILS_URL = "http://localhost:5051/voicemails"
-SETTINGS_URL = "http://localhost:5051/api/settings"
-CALL_URL = "http://localhost:5051/call"
-MODELS_URL = "http://localhost:5051/api/models"
-CHECK_INTERVAL = 10
-
-
-def _load_dashboard_token():
-    """Read DASHBOARD_TOKEN from .env file."""
+def _load_env_file():
+    """Read KEY=value pairs from a .env next to this app (for client config)."""
+    vals = {}
     env_path = AGENT_DIR / ".env"
     if env_path.exists():
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("DASHBOARD_TOKEN="):
-                    return line.split("=", 1)[1].strip().strip('"').strip("'")
-    return ""
+        for line in open(env_path):
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                vals[k.strip()] = v.strip().strip('"').strip("'")
+    return vals
 
 
-DASHBOARD_TOKEN = _load_dashboard_token()
+_ENV_FILE = _load_env_file()
+
+
+def _cfg(key, default=""):
+    """Config value: real environment first, then the .env file, then default."""
+    return os.environ.get(key) or _ENV_FILE.get(key, default)
+
+
+# Server URL — point this at a remote host (LAN / Tailscale / tunnel) to run the
+# menu bar on a CLIENT machine while the server runs headless elsewhere.
+# /health is served (auth-exempt) by the dashboard app too, so one base covers all.
+SERVER_URL = _cfg("HERMES_SERVER_URL", "http://localhost:5051").rstrip("/")
+_server_host = SERVER_URL.split("://", 1)[-1].split("/")[0].split(":")[0]
+IS_LOCAL_SERVER = _server_host in ("localhost", "127.0.0.1", "::1")
+
+HEALTH_URL = f"{SERVER_URL}/health"
+VOICEMAILS_URL = f"{SERVER_URL}/voicemails"
+SETTINGS_URL = f"{SERVER_URL}/api/settings"
+CALL_URL = f"{SERVER_URL}/call"
+MODELS_URL = f"{SERVER_URL}/api/models"
+CHECK_INTERVAL = 10
+
+DASHBOARD_TOKEN = _cfg("DASHBOARD_TOKEN")
 
 
 def api_headers():
     if DASHBOARD_TOKEN:
         return {"Authorization": f"Bearer {DASHBOARD_TOKEN}"}
     return {}
+
+
+def _dashboard_url():
+    """Dashboard URL, with a one-time ?token bootstrap when a token is configured."""
+    return f"{SERVER_URL}/?token={DASHBOARD_TOKEN}" if DASHBOARD_TOKEN else f"{SERVER_URL}/"
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -92,13 +112,14 @@ class PhoneMenuBar(rumps.App):
         self.quit_item = rumps.MenuItem("Quit", callback=self.quit_app)
 
         # Build menu
+        # Start/Stop/Restart only apply to a LOCAL server (they run/kill a local
+        # process); hide them when connected to a remote server.
+        local_controls = [self.start_item, self.stop_item, self.restart_item, rumps.separator] \
+            if IS_LOCAL_SERVER else []
         self.menu = [
             self.status_item,
             rumps.separator,
-            self.start_item,
-            self.stop_item,
-            self.restart_item,
-            rumps.separator,
+            *local_controls,
             self.call_item,
             self.vm_menu,
             rumps.separator,
@@ -134,17 +155,19 @@ class PhoneMenuBar(rumps.App):
         if Path(icon_path).exists():
             self.icon = icon_path
         self.title = ""  # No text, just the icon
-        # Update menu state (None = disabled, callback = enabled)
-        self.start_item.set_callback(None if running else self.start_server)
-        self.stop_item.set_callback(None if not running else self.stop_server)
-        self.restart_item.set_callback(None if not running else self.restart_server)
+        # Update menu state (None = disabled, callback = enabled) — local only
+        if IS_LOCAL_SERVER:
+            self.start_item.set_callback(None if running else self.start_server)
+            self.stop_item.set_callback(None if not running else self.stop_server)
+            self.restart_item.set_callback(None if not running else self.restart_server)
         # Update status text
+        where = "" if IS_LOCAL_SERVER else f" @ {_server_host}"
         if running and data:
             provider = data.get("hermes_model") or data.get("llm_legacy", "unknown")
             vm_count = data.get("voicemails", 0)
-            self.status_item.title = f"Running ({provider}) — {vm_count} voicemails"
+            self.status_item.title = f"Running ({provider}) — {vm_count} voicemails{where}"
         else:
-            self.status_item.title = "Server stopped"
+            self.status_item.title = f"Server stopped{where}"
 
     def start_server(self, _):
         # Check if already running
@@ -201,16 +224,15 @@ class PhoneMenuBar(rumps.App):
         try:
             from native_settings import open_settings as _open_native
             _open_native(
-                api_url="http://localhost:5051",
+                api_url=SERVER_URL,
                 token=DASHBOARD_TOKEN,
             )
         except Exception as e:
             print(f"Native settings error: {e}")
-            # Fallback to browser with auto-auth
-            webbrowser.open(f"http://localhost:5051/?token={DASHBOARD_TOKEN}")
+            webbrowser.open(_dashboard_url())
 
     def open_dashboard(self, _):
-        webbrowser.open(f"http://localhost:5051/?token={DASHBOARD_TOKEN}")
+        webbrowser.open(_dashboard_url())
 
     def quit_app(self, _):
         rumps.quit_application()
