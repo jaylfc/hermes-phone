@@ -144,8 +144,12 @@ mkdir -p "$INSTALL_DIR/icons"
 cp "$SCRIPT_DIR/server.py" "$INSTALL_DIR/"
 cp "$SCRIPT_DIR/provider_registry.py" "$INSTALL_DIR/"
 cp "$SCRIPT_DIR/requirements.txt" "$INSTALL_DIR/"
+cp -R "$SCRIPT_DIR/agents" "$INSTALL_DIR/"          # required: server.py does `from agents import ...`
+cp "$SCRIPT_DIR/local_voice.py" "$INSTALL_DIR/" 2>/dev/null || true
 cp "$SCRIPT_DIR/dashboard.html" "$INSTALL_DIR/" 2>/dev/null || true
+cp "$SCRIPT_DIR/settings.html" "$INSTALL_DIR/" 2>/dev/null || true
 cp "$SCRIPT_DIR/native_settings.py" "$INSTALL_DIR/" 2>/dev/null || true
+cp "$SCRIPT_DIR/env.template" "$INSTALL_DIR/" 2>/dev/null || true
 cp -r "$SCRIPT_DIR/icons/" "$INSTALL_DIR/icons/" 2>/dev/null || true
 echo -e "${GREEN}  ✅ Files copied${NC}"
 
