@@ -1,0 +1,16 @@
+# Pipecat voice-agent prototype — pinned to verified version
+# Install: pip install -r requirements-prototype.txt
+
+# Core framework with all required service extras
+pipecat-ai[websocket,silero,deepgram,openai,cartesia]==0.0.98
+
+# FastAPI server + ASGI runner (pipecat's runner extra brings uvicorn,
+# but we pin explicit versions so the prototype is fully reproducible)
+fastapi>=0.111,<0.116
+uvicorn[standard]>=0.29,<0.32
+
+# Twilio TwiML (for the /twiml endpoint that redirects the call)
+twilio>=9.0,<10.0
+
+# python-dotenv for .env loading (optional, mirrors existing project style)
+python-dotenv>=1.0,<2.0
