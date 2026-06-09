@@ -166,8 +166,9 @@ Adding a new backend? Create a file in `agents/` and register it in the factory.
 - Two-port model: public webhooks (5050) vs private dashboard (5051)
 - `DASHBOARD_TOKEN` for API/dashboard auth (auto-generated during install)
 - PIN-protected AI access (not mentioned in greeting — callers don't know it exists)
-- Webhook routes exempt from auth (Twilio needs open access)
-- 30-day session cookie for dashboard
+- Webhook routes are validated by Twilio request signature (`X-Twilio-Signature`), not token auth (`VALIDATE_TWILIO_SIGNATURE=true`; set false only for local dev)
+- PIN gate is constant-time and rate-limited — a caller is locked out after repeated wrong attempts (`PIN_MAX_ATTEMPTS`, `PIN_LOCKOUT_WINDOW`)
+- Dashboard auth uses an opaque, revocable 30-day session cookie (HttpOnly, SameSite=Strict, Secure behind TLS) — the cookie never stores the raw token
 - No secrets in public repo — all credentials in `.env` (gitignored)
 
 ---
@@ -240,6 +241,7 @@ TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=your-auth-token
 TWILIO_PHONE_NUMBER=+123****7890
 MY_PHONE_NUMBER=+098****4321
+VALIDATE_TWILIO_SIGNATURE=true    # verify X-Twilio-Signature on /voice/* webhooks
 ```
 
 ### Call Handling
@@ -248,6 +250,8 @@ MY_PHONE_NUMBER=+098****4321
 COMPANY_NAME="My Company"
 VOICEMAIL_EMAIL=hello@company.com
 VOICEMAIL_PIN=1234
+PIN_MAX_ATTEMPTS=5               # lock out a caller after this many wrong PINs
+PIN_LOCKOUT_WINDOW=600           # lockout window, in seconds
 VOICEMAIL_GREETING="Hi, you've reached our AI assistant..."
 CALL_GOAL="Have a friendly conversation."
 ```
