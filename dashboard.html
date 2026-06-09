@@ -1,627 +1,1630 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hermes Phone</title>
+<title>Dialtone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;450;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════
-   Neo Kinpaku Design System — Lacquer + Gold
-   ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   Dialtone — Premium Telephony Console
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Theme Tokens ─────────────────────────────────────────── */
 :root {
-  --lacquer: #0c0c0e;
-  --surface: #141418;
-  --surface-raised: #1a1a20;
-  --surface-overlay: #222228;
-  --gold: #c9a84c;
-  --gold-dim: #8a7235;
-  --gold-bright: #e4c65a;
-  --champagne: #e8dcc8;
-  --text: #d4d0c8;
-  --text-dim: #7a7670;
-  --text-ghost: #4a4844;
-  --danger: #c44040;
-  --danger-dim: #8a2c2c;
-  --success: #3a8a4a;
-  --success-dim: #2a6a38;
-  --border: #2a2a30;
-  --border-gold: rgba(201, 168, 76, 0.2);
-  --radius: 10px;
-  --radius-sm: 6px;
-  --mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
-  --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  --bg:          oklch(.985 .004 247);
+  --surface:     oklch(1 0 0);
+  --surface-2:   oklch(.975 .006 247);
+  --raised:      oklch(.97 .008 247);
+  --border:      oklch(.915 .008 247);
+  --border-strong: oklch(.86 .01 247);
+  --text:        oklch(.27 .02 255);
+  --text-dim:    oklch(.52 .018 255);
+  --text-faint:  oklch(.68 .014 255);
+  --accent:      oklch(.62 .13 162);
+  --accent-strong: oklch(.52 .13 162);
+  --accent-bg:   oklch(.62 .13 162 / .10);
+  --danger:      oklch(.58 .18 25);
+  --warn:        oklch(.75 .13 75);
+  --shadow:      0 1px 2px oklch(.5 .02 255 / .06), 0 6px 24px oklch(.5 .02 255 / .06);
+  --shadow-sm:   0 1px 3px oklch(.5 .02 255 / .08);
+  --shadow-raised: 0 2px 8px oklch(.5 .02 255 / .08), 0 12px 40px oklch(.5 .02 255 / .10);
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-xs:   5px;
+  --sidebar-w:   248px;
+  --topbar-h:    60px;
+  color-scheme: light;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+[data-theme="dark"] {
+  --bg:          oklch(.17 .012 256);
+  --surface:     oklch(.205 .014 256);
+  --surface-2:   oklch(.235 .015 256);
+  --raised:      oklch(.26 .017 256);
+  --border:      oklch(.30 .018 256);
+  --border-strong: oklch(.36 .02 256);
+  --text:        oklch(.96 .008 256);
+  --text-dim:    oklch(.72 .015 256);
+  --text-faint:  oklch(.55 .015 256);
+  --accent:      oklch(.74 .14 162);
+  --accent-strong: oklch(.80 .13 162);
+  --accent-bg:   oklch(.74 .14 162 / .14);
+  --danger:      oklch(.66 .19 25);
+  --warn:        oklch(.82 .14 75);
+  --shadow:      0 1px 2px oklch(0 0 0 / .3), 0 10px 34px oklch(0 0 0 / .4);
+  --shadow-sm:   0 1px 3px oklch(0 0 0 / .35);
+  --shadow-raised: 0 2px 10px oklch(0 0 0 / .4), 0 16px 48px oklch(0 0 0 / .5);
+  color-scheme: dark;
+}
+
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { height: 100%; }
 
 body {
-  font-family: var(--sans);
-  background: var(--lacquer);
-  color: var(--text);
-  min-height: 100vh;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ─── Layout ─── */
-.shell {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 32px 24px 64px;
-}
-
-/* ─── Header ─── */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 32px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-}
-
-.header h1 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--champagne);
-  letter-spacing: -0.02em;
-}
-
-.header h1 span {
-  color: var(--text-dim);
-  font-weight: 400;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-ghost);
-}
-
-.status-dot.live {
-  background: #4ade80;
-  box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
-}
-
-/* ─── Stats Row ─── */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 32px;
-}
-
-.stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-}
-
-.stat-label {
-  font-size: 11px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 6px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--champagne);
-  font-family: var(--mono);
-}
-
-.stat-sub {
-  font-size: 11px;
-  color: var(--text-ghost);
-  margin-top: 2px;
-}
-
-/* ─── Section ─── */
-.section {
-  margin-bottom: 32px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.section-title {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--champagne);
-  letter-spacing: -0.01em;
-}
-
-.section-actions {
-  display: flex;
-  gap: 8px;
-}
-
-/* ─── Buttons ─── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
+  line-height: 1.5;
+  background: var(--bg);
   color: var(--text);
-  font-size: 12px;
-  font-family: var(--sans);
-  cursor: pointer;
-  transition: all 0.15s;
-  text-decoration: none;
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 200ms ease, color 200ms ease;
 }
 
-.btn:hover {
-  background: var(--surface-raised);
-  border-color: var(--border-gold);
+/* ── App Shell ────────────────────────────────────────────── */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: 1fr;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.btn-gold {
-  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
-  border-color: var(--gold);
-  color: #0c0c0e;
-  font-weight: 600;
-}
-
-.btn-gold:hover {
-  background: linear-gradient(135deg, var(--gold), var(--gold-bright));
-}
-
-.btn-danger {
-  border-color: var(--danger-dim);
-  color: var(--danger);
-}
-
-.btn-danger:hover {
-  background: var(--danger-dim);
-  color: #fff;
-}
-
-.btn-sm {
-  padding: 4px 10px;
-  font-size: 11px;
-}
-
-/* ─── Voicemail List ─── */
-.vm-list {
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  height: 100vh;
+  overflow: hidden;
+  transition: background 200ms ease, border-color 200ms ease;
+  position: relative;
+  z-index: 10;
 }
 
-.vm-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  transition: border-color 0.15s;
-}
-
-.vm-item:hover {
-  border-color: var(--border-gold);
-}
-
-.vm-item.unread {
-  border-left: 3px solid var(--gold);
-}
-
-.vm-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--surface-overlay);
+.sidebar-brand {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 14px;
+  gap: 11px;
+  padding: 22px 20px 20px;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
-.vm-info {
-  min-width: 0;
-}
-
-.vm-caller {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--champagne);
-  margin-bottom: 2px;
-}
-
-.vm-meta {
-  font-size: 11px;
-  color: var(--text-dim);
+.brand-glyph {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--accent);
   display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px oklch(.62 .13 162 / .35);
+}
+
+[data-theme="dark"] .brand-glyph {
+  box-shadow: 0 2px 12px oklch(.74 .14 162 / .40);
+}
+
+.brand-glyph svg {
+  width: 17px;
+  height: 17px;
+  color: white;
+}
+
+.brand-name {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.04em;
+  color: var(--text);
+}
+
+/* ── Sidebar Nav ──────────────────────────────────────────── */
+.sidebar-nav {
+  flex: 1;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
   gap: 10px;
-}
-
-.vm-transcript {
-  font-size: 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
   color: var(--text-dim);
-  margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 400px;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background 150ms ease, color 150ms ease;
+  user-select: none;
+  position: relative;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
 }
 
-.vm-audio {
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+[data-theme="dark"] .nav-item.active {
+  color: var(--accent-strong);
+}
+
+.nav-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: .75;
+}
+
+.nav-item.active svg {
+  opacity: 1;
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  letter-spacing: 0;
+}
+
+/* Staggered load animation */
+.nav-item:nth-child(1) { animation: navSlide 280ms ease both; animation-delay: 60ms; }
+.nav-item:nth-child(2) { animation: navSlide 280ms ease both; animation-delay: 100ms; }
+.nav-item:nth-child(3) { animation: navSlide 280ms ease both; animation-delay: 140ms; }
+
+@keyframes navSlide {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Sidebar Footer ───────────────────────────────────────── */
+.sidebar-footer {
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.status-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
 }
 
-.vm-audio audio {
-  height: 32px;
-  width: 200px;
+.status-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+  transition: background 300ms ease, box-shadow 300ms ease;
 }
 
-.vm-actions {
+.status-led.online {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg), 0 0 8px oklch(.62 .13 162 / .4);
+}
+
+[data-theme="dark"] .status-led.online {
+  box-shadow: 0 0 0 2px var(--accent-bg), 0 0 10px oklch(.74 .14 162 / .5);
+}
+
+.status-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.theme-toggle {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 150ms ease, color 150ms ease;
+  user-select: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
 }
 
-/* ─── Call Form ─── */
-.call-form {
+.theme-toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.theme-toggle svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ── Main Area ────────────────────────────────────────────── */
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Topbar ───────────────────────────────────────────────── */
+.topbar {
+  height: var(--topbar-h);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  flex-shrink: 0;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
+  transition: background 200ms ease, border-color 200ms ease;
 }
 
-.call-row {
+.topbar-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -.03em;
+  color: var(--text);
+}
+
+.model-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-dim);
+  font-family: 'Geist Mono', monospace;
+  letter-spacing: -.01em;
+  transition: border-color 200ms ease;
+}
+
+.model-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+  transition: background 300ms ease;
+}
+
+.model-pill.online .dot {
+  background: var(--accent);
+}
+
+/* ── Content Area ─────────────────────────────────────────── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+  transition: background 200ms ease;
+}
+
+/* ── Panels ───────────────────────────────────────────────── */
+.panel {
+  display: none;
+  padding: 28px;
+  max-width: 860px;
+  animation: panelIn 220ms ease both;
+}
+
+.panel.active {
+  display: block;
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Activity Panel ───────────────────────────────────────── */
+.panel-header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.panel-heading {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -.04em;
+  color: var(--text);
+}
+
+.panel-meta {
+  font-size: 13px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: 'Hanken Grotesk', sans-serif;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.refresh-btn:hover {
+  background: var(--raised);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.refresh-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Voicemail Cards ──────────────────────────────────────── */
+.vm-feed {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.input {
-  flex: 1;
-  padding: 9px 14px;
-  border-radius: var(--radius-sm);
+.vm-card {
+  background: var(--surface);
   border: 1px solid var(--border);
-  background: var(--lacquer);
-  color: var(--text);
-  font-size: 14px;
-  font-family: var(--mono);
-  letter-spacing: 0.02em;
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease, background 200ms ease;
+  animation: cardIn 280ms ease both;
+  position: relative;
+  overflow: hidden;
 }
 
-.input:focus {
-  outline: none;
-  border-color: var(--gold-dim);
+.vm-card:nth-child(1) { animation-delay: 30ms; }
+.vm-card:nth-child(2) { animation-delay: 60ms; }
+.vm-card:nth-child(3) { animation-delay: 90ms; }
+.vm-card:nth-child(4) { animation-delay: 120ms; }
+.vm-card:nth-child(5) { animation-delay: 150ms; }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.input::placeholder {
-  color: var(--text-ghost);
+.vm-card:hover {
+  box-shadow: var(--shadow-raised);
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
 }
 
-/* ─── Empty State ─── */
-.empty {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--text-dim);
+.vm-card.unread {
+  border-left: 3px solid var(--accent);
+  padding-left: 15px;
 }
 
-.empty-icon {
-  font-size: 32px;
-  margin-bottom: 12px;
-  opacity: 0.5;
+.vm-card.unread::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-bg);
+  pointer-events: none;
 }
 
-.empty-text {
+.vm-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.vm-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--raised);
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  position: relative;
+  letter-spacing: -.01em;
 }
 
-/* ─── Toast ─── */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 10px 18px;
+.vm-avatar .unread-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+}
+
+.vm-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.vm-caller-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vm-caller {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'Geist Mono', monospace;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vm-time-dur {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  font-family: 'Geist Mono', monospace;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.vm-time-dur .sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  display: inline-block;
+}
+
+.vm-transcript-block {
+  margin-top: 10px;
+  padding: 10px 13px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  background: var(--accent-bg);
+  border: 1px solid oklch(.62 .13 162 / .15);
+}
+
+[data-theme="dark"] .vm-transcript-block {
+  border-color: oklch(.74 .14 162 / .18);
+}
+
+.vm-transcript-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.vm-transcript-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+
+.vm-player {
+  margin-top: 12px;
+}
+
+.vm-player audio {
+  width: 100%;
+  height: 36px;
+  border-radius: var(--radius-xs);
+  accent-color: var(--accent);
+}
+
+.vm-delete-zone {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.vm-card:hover .vm-delete-zone {
+  opacity: 1;
+}
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid oklch(.58 .18 25 / .25);
+  background: transparent;
+  color: var(--danger);
+  font-size: 11.5px;
   font-weight: 500;
-  z-index: 1000;
-  animation: slideUp 0.2s ease;
-  border: 1px solid;
+  font-family: 'Hanken Grotesk', sans-serif;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
 }
 
-.toast.success {
-  background: var(--success-dim);
-  color: #a7f3d0;
-  border-color: var(--success);
-}
-
-.toast.error {
-  background: var(--danger-dim);
-  color: #fca5a5;
+.delete-btn:hover {
+  background: oklch(.58 .18 25 / .10);
   border-color: var(--danger);
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+.delete-btn svg {
+  width: 12px;
+  height: 12px;
 }
 
-/* ─── Nav ─── */
-.nav {
+/* ── Empty / Loading / Offline States ─────────────────────── */
+.empty-state {
   display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 24px;
+  gap: 12px;
+  text-align: center;
 }
 
-.nav a {
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
+.empty-state svg {
+  width: 44px;
+  height: 44px;
+  color: var(--text-faint);
+  opacity: .5;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-dim);
-  text-decoration: none;
-  transition: all 0.15s;
+  font-family: 'Bricolage Grotesque', sans-serif;
 }
 
-.nav a:hover {
+.empty-state-sub {
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+/* ── Dialpad Panel ────────────────────────────────────────── */
+.dialpad-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  gap: 0;
+}
+
+.dialpad-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 28px 32px 30px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: panelIn 240ms ease both;
+  animation-delay: 40ms;
+}
+
+.dial-display {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dial-number {
+  font-family: 'Geist Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
   color: var(--text);
-  background: var(--surface);
+  letter-spacing: .04em;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.nav a.active {
-  color: var(--gold);
-  background: var(--surface);
-  border: 1px solid var(--border-gold);
+.dial-number.placeholder {
+  color: var(--text-faint);
+  font-size: 14px;
+  font-weight: 400;
+  font-family: 'Hanken Grotesk', sans-serif;
+  letter-spacing: 0;
 }
 
-/* ─── Responsive ─── */
-@media (max-width: 640px) {
-  .stats { grid-template-columns: repeat(2, 1fr); }
-  .vm-item { grid-template-columns: auto 1fr auto; }
-  .vm-audio { display: none; }
-  .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+.backspace-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-xs);
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease, color 150ms ease;
+  flex-shrink: 0;
+}
+
+.backspace-btn:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.backspace-btn:active {
+  transform: scale(.92);
+}
+
+.backspace-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dialpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 62px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--raised);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 80ms ease, box-shadow 120ms ease;
+  user-select: none;
+  gap: 1px;
+}
+
+.key:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.key:active {
+  transform: scale(.93);
+  background: var(--accent-bg);
+  border-color: oklch(.62 .13 162 / .30);
+}
+
+.key-digit {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+
+.key-sub {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  line-height: 1;
+}
+
+.key-sub.invisible { visibility: hidden; }
+
+.call-btn {
+  width: 100%;
+  height: 56px;
+  border-radius: 14px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  transition: background 150ms ease, transform 80ms ease, box-shadow 150ms ease;
+  box-shadow: 0 4px 16px oklch(.62 .13 162 / .35);
+}
+
+[data-theme="dark"] .call-btn {
+  box-shadow: 0 4px 20px oklch(.74 .14 162 / .40);
+}
+
+.call-btn:hover {
+  background: var(--accent-strong);
+  box-shadow: 0 6px 24px oklch(.62 .13 162 / .45);
+  transform: translateY(-1px);
+}
+
+.call-btn:active {
+  transform: scale(.97) translateY(0);
+}
+
+.call-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Export Panel ─────────────────────────────────────────── */
+.export-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  max-width: 580px;
+  animation: panelIn 240ms ease both;
+}
+
+.export-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-decoration: none;
+  transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.export-card:nth-child(1) { animation: cardIn 260ms ease both; animation-delay: 40ms; }
+.export-card:nth-child(2) { animation: cardIn 260ms ease both; animation-delay: 80ms; }
+
+.export-card:hover {
+  box-shadow: var(--shadow-raised);
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.export-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  background: var(--accent-bg);
+  border: 1px solid oklch(.62 .13 162 / .18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.export-icon svg {
+  width: 21px;
+  height: 21px;
+  color: var(--accent);
+}
+
+.export-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -.03em;
+  color: var(--text);
+}
+
+.export-desc {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+.export-arrow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-top: auto;
+}
+
+.export-arrow svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ── Toast ────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: toastIn 200ms ease both;
+  max-width: 320px;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.toast.exit {
+  animation: toastOut 180ms ease forwards;
+}
+
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(4px) scale(.97); }
+}
+
+.toast.success {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.toast.success .toast-icon { color: var(--accent); }
+
+.toast.error {
+  background: oklch(.58 .18 25 / .10);
+  color: var(--text);
+  border-color: oklch(.58 .18 25 / .35);
+}
+
+[data-theme="dark"] .toast.error {
+  background: oklch(.66 .19 25 / .12);
+  border-color: oklch(.66 .19 25 / .35);
+}
+
+.toast.error .toast-icon { color: var(--danger); }
+
+.toast-icon svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+/* ── Focus Visible ────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 820px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100dvh;
+  }
+
+  .sidebar {
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0 12px;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sidebar-brand {
+    border-bottom: none;
+    padding: 10px 8px 10px 0;
+    flex-shrink: 0;
+    margin-right: 4px;
+    border-right: 1px solid var(--border);
+    padding-right: 12px;
+  }
+
+  .brand-name { font-size: 15px; }
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex: 1;
+    padding: 8px 0;
+    gap: 2px;
+    overflow-x: auto;
+    align-items: center;
+  }
+
+  .nav-item {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .nav-item:nth-child(1), .nav-item:nth-child(2), .nav-item:nth-child(3) {
+    animation: none;
+  }
+
+  .sidebar-footer {
+    flex-direction: row;
+    border-top: none;
+    border-left: 1px solid var(--border);
+    padding: 8px 0 8px 8px;
+    flex-shrink: 0;
+    margin-left: auto;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .status-row { flex-shrink: 0; }
+  .status-label { display: none; }
+
+  .main { height: calc(100dvh - var(--topbar-h)); }
+
+  .export-grid { grid-template-columns: 1fr; }
+
+  .dialpad-card { width: 290px; padding: 22px 24px 26px; }
+}
+
+@media (max-width: 520px) {
+  .panel { padding: 18px 16px; }
+  .topbar { padding: 0 16px; }
+  .dialpad-card { width: 100%; border-radius: 0; border-left: none; border-right: none; }
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
 }
 </style>
 </head>
+
 <body>
+<!-- App Shell -->
+<div class="app" id="app">
 
-<div class="shell">
-  <!-- Header -->
-  <div class="header">
-    <div class="header-left">
-      <div class="logo">📞</div>
-      <h1>Hermes Phone <span>Dashboard</span></h1>
-    </div>
-    <div id="status" class="status-pill">
-      <div class="status-dot" id="status-dot"></div>
-      <span id="status-text">Connecting...</span>
-    </div>
-  </div>
+  <!-- Sidebar -->
+  <aside class="sidebar" role="navigation" aria-label="Main navigation">
 
-  <!-- Stats -->
-  <div class="stats">
-    <div class="stat-card">
-      <div class="stat-label">Voicemails</div>
-      <div class="stat-value" id="stat-vm">-</div>
-      <div class="stat-sub" id="stat-unread"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">AI Model</div>
-      <div class="stat-value" id="stat-model" style="font-size:14px">-</div>
-      <div class="stat-sub" id="stat-provider"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Voice Engine</div>
-      <div class="stat-value" id="stat-voice" style="font-size:14px">-</div>
-      <div class="stat-sub" id="stat-voice-sub"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Uptime</div>
-      <div class="stat-value" id="stat-uptime" style="font-size:14px">-</div>
-      <div class="stat-sub" id="stat-port"></div>
-    </div>
-  </div>
-
-  <!-- Navigation -->
-  <div class="nav">
-    <a href="#" class="active" onclick="showTab('voicemails',this)">Voicemails</a>
-    <a href="#" onclick="showTab('call',this)">Make Call</a>
-    <a href="/export/transcripts" download>Export</a>
-  </div>
-
-  <!-- Voicemails Tab -->
-  <div id="tab-voicemails" class="section">
-    <div class="section-header">
-      <div class="section-title">Voicemails</div>
-      <div class="section-actions">
-        <button class="btn btn-sm" onclick="loadVoicemails()">↻ Refresh</button>
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <div class="brand-glyph" aria-hidden="true">
+        <!-- Phone icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.9 11.5a19.79 19.79 0 01-3.07-8.67A2 2 0 012.81 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.78a16 16 0 006.29 6.29l1.14-1.14a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+        </svg>
       </div>
+      <span class="brand-name">Dialtone</span>
     </div>
-    <div id="vm-list" class="vm-list">
-      <div class="empty">
-        <div class="empty-icon">🎙️</div>
-        <div class="empty-text">Loading voicemails...</div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Call Tab -->
-  <div id="tab-call" class="section" style="display:none">
-    <div class="section-header">
-      <div class="section-title">Make an Outbound Call</div>
-    </div>
-    <div class="call-form">
-      <div class="call-row">
-        <input type="tel" id="call-number" class="input" placeholder="+44 7xxx xxx xxx">
-        <button class="btn btn-gold" onclick="makeCall()">📞 Call</button>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--text-ghost)">
-        Your Twilio number will be used as the caller ID.
-      </div>
-    </div>
-  </div>
+    <!-- Nav -->
+    <nav class="sidebar-nav">
+      <button class="nav-item active" id="nav-activity" onclick="showPanel('activity', this)" aria-current="page">
+        <!-- Voicemail icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 012 6a2 2 0 012-2"/>
+          <path d="M9 12h6M9 16h4"/>
+        </svg>
+        Activity
+        <span class="nav-badge" id="nav-badge" style="display:none">0</span>
+      </button>
 
-  <!-- Export Tab -->
-  <div id="tab-export" class="section" style="display:none">
-    <div class="section-header">
-      <div class="section-title">Export Data</div>
+      <button class="nav-item" id="nav-call" onclick="showPanel('call', this)">
+        <!-- Dial icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="9" cy="9" r="1"/><circle cx="12" cy="9" r="1"/><circle cx="15" cy="9" r="1"/>
+          <circle cx="9" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="15" cy="12" r="1"/>
+          <circle cx="9" cy="15" r="1"/><circle cx="12" cy="15" r="1"/><circle cx="15" cy="15" r="1"/>
+        </svg>
+        Make a Call
+      </button>
+
+      <button class="nav-item" id="nav-export" onclick="showPanel('export', this)">
+        <!-- Download icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export
+      </button>
+    </nav>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+      <div class="status-row">
+        <div class="status-led" id="status-led" aria-hidden="true"></div>
+        <span class="status-label" id="status-label">Connecting</span>
+      </div>
+
+      <a href="/settings" class="nav-item" style="flex-shrink:0">
+        <!-- Settings icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+        Settings
+      </a>
+
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme">
+        <!-- Moon / Sun — toggled by JS -->
+        <svg id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+        </svg>
+        <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <span id="theme-label">Dark mode</span>
+      </button>
     </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <a href="/export/zip" class="btn" download>📦 Download All (ZIP)</a>
-      <a href="/export/transcripts" class="btn" download>📝 Transcripts (TXT)</a>
-    </div>
-    <div style="margin-top:12px;font-size:11px;color:var(--text-ghost)">
-      ZIP includes all voicemail audio files, metadata, and transcripts.
-    </div>
-  </div>
-</div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <h1 class="topbar-title" id="topbar-title">Activity</h1>
+      <div class="model-pill" id="model-pill">
+        <span class="dot" id="model-dot"></span>
+        <span id="model-label">—</span>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content" role="main">
+
+      <!-- ── ACTIVITY PANEL ─────────────────────────────────── -->
+      <section class="panel active" id="panel-activity" aria-label="Voicemail activity">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-heading">Voicemails</h2>
+            <p class="panel-meta" id="vm-meta-text">Loading…</p>
+          </div>
+          <button class="refresh-btn" onclick="loadVoicemails()" aria-label="Refresh voicemails">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+        <div class="vm-feed" id="vm-feed">
+          <!-- Loading state -->
+          <div class="empty-state" id="vm-loading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.9 11.5a19.79 19.79 0 01-3.07-8.67A2 2 0 012.81 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.78a16 16 0 006.29 6.29l1.14-1.14a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+            </svg>
+            <p class="empty-state-title">Loading voicemails</p>
+            <p class="empty-state-sub">Fetching your messages…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── CALL PANEL ─────────────────────────────────────── -->
+      <section class="panel" id="panel-call" aria-label="Make a call">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-heading">Make a Call</h2>
+            <p class="panel-meta">Your Twilio number is used as caller ID</p>
+          </div>
+        </div>
+        <div class="dialpad-wrap">
+          <div class="dialpad-card" role="group" aria-label="Dialpad">
+
+            <!-- Number display -->
+            <div class="dial-display" aria-live="polite" aria-label="Dialed number">
+              <span class="dial-number placeholder" id="dial-display" aria-label="Enter a number">+1 (000) 000-0000</span>
+              <button class="backspace-btn" id="backspace-btn" onclick="dialBackspace()" aria-label="Backspace">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/>
+                  <line x1="18" y1="9" x2="13" y2="14"/>
+                  <line x1="13" y1="9" x2="18" y2="14"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Dialpad grid -->
+            <div class="dialpad-grid">
+              <!-- Row 1 -->
+              <button class="key" onclick="dialKey('1')" aria-label="1">
+                <span class="key-digit">1</span>
+                <span class="key-sub invisible">___</span>
+              </button>
+              <button class="key" onclick="dialKey('2')" aria-label="2 ABC">
+                <span class="key-digit">2</span>
+                <span class="key-sub">ABC</span>
+              </button>
+              <button class="key" onclick="dialKey('3')" aria-label="3 DEF">
+                <span class="key-digit">3</span>
+                <span class="key-sub">DEF</span>
+              </button>
+              <!-- Row 2 -->
+              <button class="key" onclick="dialKey('4')" aria-label="4 GHI">
+                <span class="key-digit">4</span>
+                <span class="key-sub">GHI</span>
+              </button>
+              <button class="key" onclick="dialKey('5')" aria-label="5 JKL">
+                <span class="key-digit">5</span>
+                <span class="key-sub">JKL</span>
+              </button>
+              <button class="key" onclick="dialKey('6')" aria-label="6 MNO">
+                <span class="key-digit">6</span>
+                <span class="key-sub">MNO</span>
+              </button>
+              <!-- Row 3 -->
+              <button class="key" onclick="dialKey('7')" aria-label="7 PQRS">
+                <span class="key-digit">7</span>
+                <span class="key-sub">PQRS</span>
+              </button>
+              <button class="key" onclick="dialKey('8')" aria-label="8 TUV">
+                <span class="key-digit">8</span>
+                <span class="key-sub">TUV</span>
+              </button>
+              <button class="key" onclick="dialKey('9')" aria-label="9 WXYZ">
+                <span class="key-digit">9</span>
+                <span class="key-sub">WXYZ</span>
+              </button>
+              <!-- Row 4 -->
+              <button class="key" onclick="dialKey('*')" aria-label="Asterisk">
+                <span class="key-digit" style="font-size:28px;line-height:.8">*</span>
+                <span class="key-sub invisible">___</span>
+              </button>
+              <button class="key" onclick="dialKey('0')" aria-label="0 plus">
+                <span class="key-digit">0</span>
+                <span class="key-sub">+</span>
+              </button>
+              <button class="key" onclick="dialKey('#')" aria-label="Hash">
+                <span class="key-digit" style="font-size:18px">#</span>
+                <span class="key-sub invisible">___</span>
+              </button>
+            </div>
+
+            <!-- Call button -->
+            <button class="call-btn" onclick="makeCall()" aria-label="Start call">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+              </svg>
+              Call
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── EXPORT PANEL ───────────────────────────────────── -->
+      <section class="panel" id="panel-export" aria-label="Export data">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-heading">Export</h2>
+            <p class="panel-meta">Download your voicemail archive</p>
+          </div>
+        </div>
+        <div class="export-grid">
+          <a href="/export/zip" download class="export-card" aria-label="Download all voicemails as ZIP">
+            <div class="export-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <polyline points="8 12 12 16 16 12"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+              </svg>
+            </div>
+            <div class="export-title">All Voicemails</div>
+            <div class="export-desc">ZIP archive containing audio files, metadata JSON, and transcripts.</div>
+            <div class="export-arrow">
+              Download ZIP
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="7" y1="17" x2="17" y2="7"/>
+                <polyline points="7 7 17 7 17 17"/>
+              </svg>
+            </div>
+          </a>
+
+          <a href="/export/transcripts" download class="export-card" aria-label="Download transcripts as text file">
+            <div class="export-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <div class="export-title">Transcripts</div>
+            <div class="export-desc">Plain-text file of all AI-generated call transcripts, newest first.</div>
+            <div class="export-arrow">
+              Download TXT
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="7" y1="17" x2="17" y2="7"/>
+                <polyline points="7 7 17 7 17 17"/>
+              </svg>
+            </div>
+          </a>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
 <script>
+/* ═══════════════════════════════════════════════════════════
+   Dialtone — Application Logic
+   ═══════════════════════════════════════════════════════════ */
+
 const API = '';
 
-function showTab(name, el) {
-  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-  document.getElementById('tab-' + name).style.display = 'block';
-  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
-  if (el) el.classList.add('active');
-}
+/* ── Theme ─────────────────────────────────────────────────── */
+(function initTheme() {
+  const stored = localStorage.getItem('dialtone-theme');
+  const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  applyTheme(stored || preferred, false);
+})();
 
-function toast(msg, type = 'success') {
-  const el = document.createElement('div');
-  el.className = 'toast ' + type;
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
-}
+function applyTheme(theme, animate) {
+  const html = document.documentElement;
+  if (animate === false) {
+    html.style.setProperty('transition', 'none');
+    requestAnimationFrame(() => html.style.removeProperty('transition'));
+  }
+  html.setAttribute('data-theme', theme);
+  localStorage.setItem('dialtone-theme', theme);
 
-function formatDuration(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
+  const moonEl = document.getElementById('theme-icon-moon');
+  const sunEl  = document.getElementById('theme-icon-sun');
+  const label  = document.getElementById('theme-label');
 
-function formatTime(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = now - d;
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
-async function loadHealth() {
-  try {
-    const r = await fetch(API + '/health');
-    const d = await r.json();
-    document.getElementById('status-dot').classList.add('live');
-    document.getElementById('status-text').textContent = 'Online';
-
-    const model = d.hermes_model || d.llm_legacy || 'Not configured';
-    document.getElementById('stat-model').textContent = model.split('/').pop();
-    document.getElementById('stat-provider').textContent = model.includes('/') ? model.split('/')[0] : '';
-
-    const voice = d.voice_engine || 'none';
-    document.getElementById('stat-voice').textContent = voice;
-    document.getElementById('stat-voice-sub').textContent = voice.includes('local') ? 'On-device' : 'Cloud';
-
-    const vm = d.voicemails || 0;
-    document.getElementById('stat-vm').textContent = vm;
-
-    document.getElementById('stat-uptime').textContent = 'Active';
-    document.getElementById('stat-port').textContent = 'Port ' + (d.dashboard_port || 5051);
-  } catch {
-    document.getElementById('status-dot').classList.remove('live');
-    document.getElementById('status-text').textContent = 'Offline';
+  if (theme === 'dark') {
+    moonEl.style.display = 'none';
+    sunEl.style.display  = '';
+    if (label) label.textContent = 'Light mode';
+  } else {
+    moonEl.style.display = '';
+    sunEl.style.display  = 'none';
+    if (label) label.textContent = 'Dark mode';
   }
 }
 
-async function loadVoicemails() {
-  try {
-    const r = await fetch(API + '/voicemails');
-    const vms = await r.json();
-    const list = document.getElementById('vm-list');
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  applyTheme(current === 'dark' ? 'light' : 'dark', true);
+}
 
-    if (!vms.length) {
-      list.innerHTML = '<div class="empty"><div class="empty-icon">🎙️</div><div class="empty-text">No voicemails yet</div></div>';
-      return;
-    }
+/* ── Panel navigation ───────────────────────────────────────── */
+const PANEL_TITLES = {
+  activity: 'Activity',
+  call: 'Make a Call',
+  export: 'Export'
+};
+
+function showPanel(name, navEl) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.remove('active');
+    n.removeAttribute('aria-current');
+  });
+
+  const panel = document.getElementById('panel-' + name);
+  if (panel) {
+    panel.classList.add('active');
+    // Re-trigger animation
+    panel.style.animation = 'none';
+    requestAnimationFrame(() => { panel.style.animation = ''; });
+  }
+
+  if (navEl) {
+    navEl.classList.add('active');
+    navEl.setAttribute('aria-current', 'page');
+  }
+
+  const titleEl = document.getElementById('topbar-title');
+  if (titleEl) titleEl.textContent = PANEL_TITLES[name] || name;
+}
+
+/* ── Toast ──────────────────────────────────────────────────── */
+function toast(msg, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+
+  const icon = type === 'success'
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+  el.innerHTML = `<span class="toast-icon">${icon}</span><span>${escHtml(msg)}</span>`;
+  container.appendChild(el);
+
+  setTimeout(() => {
+    el.classList.add('exit');
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }, 3200);
+}
+
+/* ── Helpers ────────────────────────────────────────────────── */
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+function formatDuration(sec) {
+  sec = parseInt(sec, 10) || 0;
+  const m = Math.floor(sec / 60);
+  const s = String(sec % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function timeAgo(isoOrTimestamp) {
+  if (!isoOrTimestamp) return '';
+  const d = typeof isoOrTimestamp === 'number'
+    ? new Date(isoOrTimestamp * 1000)
+    : new Date(isoOrTimestamp);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60000)     return 'Just now';
+  if (diff < 3600000)   return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000)  return Math.floor(diff / 3600000) + 'h ago';
+  if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function callerInitials(from) {
+  if (!from) return '?';
+  // Phone number → last 2 digits; name → first letters
+  const digits = from.replace(/\D/g, '');
+  if (digits.length >= 2) return digits.slice(-2);
+  const words = from.trim().split(/\s+/);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return (from[0] || '?').toUpperCase();
+}
+
+/* ── Health ─────────────────────────────────────────────────── */
+let isOnline = false;
+
+async function loadHealth() {
+  try {
+    const r = await fetch(API + '/health', { cache: 'no-store' });
+    const d = await r.json();
+
+    isOnline = true;
+    document.getElementById('status-led').classList.add('online');
+    document.getElementById('status-label').textContent = 'Online';
+
+    const model = d.hermes_model || d.llm_legacy || 'Not configured';
+    const modelShort = model.includes('/') ? model.split('/').pop() : model;
+
+    const voice = d.voice_engine || '';
+    const voiceLabel = voice.toLowerCase().includes('local') ? 'On-device' : (voice ? 'Cloud' : '');
+
+    let pillText = modelShort;
+    if (voiceLabel) pillText += ' · ' + voiceLabel;
+
+    const pillEl = document.getElementById('model-pill');
+    const labelEl = document.getElementById('model-label');
+    const dotEl   = document.getElementById('model-dot');
+
+    if (labelEl) labelEl.textContent = pillText;
+    if (pillEl)  pillEl.classList.add('online');
+    if (dotEl)   dotEl.style.background = 'var(--accent)';
+
+  } catch {
+    isOnline = false;
+    document.getElementById('status-led').classList.remove('online');
+    document.getElementById('status-label').textContent = 'Offline';
+
+    const pillEl = document.getElementById('model-pill');
+    const labelEl = document.getElementById('model-label');
+    const dotEl   = document.getElementById('model-dot');
+
+    if (pillEl)  pillEl.classList.remove('online');
+    if (labelEl) labelEl.textContent = 'Offline';
+    if (dotEl)   dotEl.style.background = 'var(--danger)';
+  }
+}
+
+/* ── Voicemails ─────────────────────────────────────────────── */
+async function loadVoicemails() {
+  const feed = document.getElementById('vm-feed');
+  const meta = document.getElementById('vm-meta-text');
+  const badge = document.getElementById('nav-badge');
+
+  try {
+    const r = await fetch(API + '/voicemails', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    let vms = await r.json();
 
     // Sort newest first
     vms.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
     const unread = vms.filter(v => !v.read).length;
-    document.getElementById('stat-unread').textContent = unread ? unread + ' unread' : '';
-    document.getElementById('stat-vm').textContent = vms.length;
 
-    list.innerHTML = vms.map(vm => `
-      <div class="vm-item ${vm.read ? '' : 'unread'}">
-        <div class="vm-icon">${vm.read ? '📞' : '🔔'}</div>
-        <div class="vm-info">
-          <div class="vm-caller">${vm.from || 'Unknown'}</div>
-          <div class="vm-meta">
-            <span>${formatTime(vm.time)}</span>
-            <span>${formatDuration(vm.duration || 0)}</span>
+    if (meta) {
+      meta.textContent = vms.length === 0
+        ? 'No messages'
+        : `${vms.length} message${vms.length !== 1 ? 's' : ''}${unread ? ` · ${unread} unread` : ''}`;
+    }
+
+    if (badge) {
+      if (unread > 0) {
+        badge.textContent = unread > 99 ? '99+' : unread;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    if (vms.length === 0) {
+      feed.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.9 11.5a19.79 19.79 0 01-3.07-8.67A2 2 0 012.81 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.78a16 16 0 006.29 6.29l1.14-1.14a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+          </svg>
+          <p class="empty-state-title">No voicemails yet</p>
+          <p class="empty-state-sub">Incoming messages will appear here</p>
+        </div>`;
+      return;
+    }
+
+    feed.innerHTML = vms.map(vm => {
+      const initials = callerInitials(vm.from);
+      const unreadDot = !vm.read ? `<span class="unread-dot" aria-label="Unread"></span>` : '';
+      const transcriptBlock = vm.transcript
+        ? `<div class="vm-transcript-block">
+             <div class="vm-transcript-label">AI Transcript</div>
+             <div class="vm-transcript-text">${escHtml(vm.transcript)}</div>
+           </div>`
+        : '';
+
+      return `
+        <article class="vm-card ${vm.read ? '' : 'unread'}" aria-label="Voicemail from ${escHtml(vm.from || 'Unknown')}">
+          <div class="vm-card-top">
+            <div class="vm-avatar" aria-hidden="true">
+              ${initials}${unreadDot}
+            </div>
+            <div class="vm-body">
+              <div class="vm-caller-row">
+                <span class="vm-caller">${escHtml(vm.from || 'Unknown')}</span>
+                <span class="vm-time-dur">
+                  <span>${timeAgo(vm.time || vm.timestamp)}</span>
+                  <span class="sep" aria-hidden="true"></span>
+                  <span>${formatDuration(vm.duration)}</span>
+                </span>
+              </div>
+              ${transcriptBlock}
+            </div>
           </div>
-          ${vm.transcript ? `<div class="vm-transcript">${escHtml(vm.transcript)}</div>` : ''}
-        </div>
-        <div class="vm-audio">
-          <audio controls preload="none" src="${API}/voicemails/${vm.sid}/audio"></audio>
-        </div>
-        <div class="vm-actions">
-          <button class="btn btn-sm btn-danger" onclick="deleteVm('${vm.sid}')">Delete</button>
-        </div>
-      </div>
-    `).join('');
+          <div class="vm-player">
+            <audio controls preload="none" src="${API}/voicemails/${escHtml(vm.sid)}/audio" aria-label="Voicemail audio from ${escHtml(vm.from || 'Unknown')}"></audio>
+          </div>
+          <div class="vm-delete-zone">
+            <button class="delete-btn" onclick="deleteVm('${escHtml(vm.sid)}')" aria-label="Delete voicemail from ${escHtml(vm.from || 'Unknown')}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+              </svg>
+              Delete
+            </button>
+          </div>
+        </article>`;
+    }).join('');
+
   } catch (e) {
-    document.getElementById('vm-list').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Failed to load voicemails</div></div>';
+    if (meta) meta.textContent = 'Failed to load';
+    feed.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p class="empty-state-title">Could not load voicemails</p>
+        <p class="empty-state-sub">Check your connection and try refreshing</p>
+      </div>`;
   }
 }
 
 async function deleteVm(sid) {
-  if (!confirm('Delete this voicemail?')) return;
+  if (!confirm('Delete this voicemail? This cannot be undone.')) return;
   try {
-    await fetch(API + '/voicemails/' + sid, { method: 'DELETE' });
+    const r = await fetch(API + '/voicemails/' + encodeURIComponent(sid), { method: 'DELETE' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     toast('Voicemail deleted');
     loadVoicemails();
   } catch {
@@ -629,9 +1632,48 @@ async function deleteVm(sid) {
   }
 }
 
+/* ── Dialpad ────────────────────────────────────────────────── */
+let dialBuffer = '';
+
+function updateDialDisplay() {
+  const el = document.getElementById('dial-display');
+  if (!el) return;
+  if (dialBuffer === '') {
+    el.textContent = '+1 (000) 000-0000';
+    el.classList.add('placeholder');
+  } else {
+    el.textContent = dialBuffer;
+    el.classList.remove('placeholder');
+  }
+}
+
+function dialKey(digit) {
+  if (dialBuffer.length >= 20) return;
+  dialBuffer += digit;
+  updateDialDisplay();
+}
+
+function dialBackspace() {
+  if (dialBuffer.length === 0) return;
+  dialBuffer = dialBuffer.slice(0, -1);
+  updateDialDisplay();
+}
+
+// Physical keyboard support while call panel is active
+document.addEventListener('keydown', (e) => {
+  const activePanel = document.querySelector('.panel.active');
+  if (!activePanel || activePanel.id !== 'panel-call') return;
+
+  if (e.key === 'Backspace') { e.preventDefault(); dialBackspace(); }
+  else if (/^[0-9*#+]$/.test(e.key)) dialKey(e.key);
+});
+
 async function makeCall() {
-  const number = document.getElementById('call-number').value.trim();
-  if (!number) return toast('Enter a phone number', 'error');
+  const number = dialBuffer.trim();
+  if (!number) {
+    toast('Enter a phone number first', 'error');
+    return;
+  }
   try {
     const r = await fetch(API + '/call', {
       method: 'POST',
@@ -640,25 +1682,38 @@ async function makeCall() {
     });
     const d = await r.json();
     if (r.ok) {
-      toast('Calling ' + number + '...');
+      toast('Calling ' + number + '…');
+      dialBuffer = '';
+      updateDialDisplay();
     } else {
       toast(d.error || 'Call failed', 'error');
     }
   } catch {
-    toast('Call failed', 'error');
+    toast('Call failed — check your connection', 'error');
   }
 }
 
-function escHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-// Init
+/* ── Init ───────────────────────────────────────────────────── */
 loadHealth();
 loadVoicemails();
 setInterval(loadHealth, 15000);
+
+// Sync theme icon on load (after DOM is ready)
+(function syncThemeIcon() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const moonEl = document.getElementById('theme-icon-moon');
+  const sunEl  = document.getElementById('theme-icon-sun');
+  const label  = document.getElementById('theme-label');
+  if (current === 'dark') {
+    if (moonEl) moonEl.style.display = 'none';
+    if (sunEl)  sunEl.style.display  = '';
+    if (label)  label.textContent = 'Light mode';
+  } else {
+    if (moonEl) moonEl.style.display = '';
+    if (sunEl)  sunEl.style.display  = 'none';
+    if (label)  label.textContent = 'Dark mode';
+  }
+})();
 </script>
 </body>
 </html>

@@ -25,3 +25,8 @@ voicemails/
 .idea/
 *.swp
 *.swo
+
+# Playwright / dev artifacts
+.playwright-mcp/
+/dash-dark.png
+/dash-light.png
