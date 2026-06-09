@@ -1,5 +1,5 @@
 """
-Hermes Phone — AI-powered VoIP server for macOS.
+Dialtone — AI-powered VoIP server for macOS.
 
 Architecture:
   Twilio (audio) → WebSocket → Deepgram (STT) → Hermes Agent (LLM + tools + memory) → TTS → Twilio
@@ -267,7 +267,7 @@ def get_auth_headers():
 LOGIN_HTML = """<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>📞 Hermes Phone — Login</title>
+<title>📞 Dialtone — Login</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center}
@@ -284,7 +284,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .hint{text-align:center;color:#555;font-size:12px;margin-top:16px}
 </style></head><body>
 <div class="login-card">
-<h1>📞 Hermes Phone</h1>
+<h1>📞 Dialtone</h1>
 <div class="sub">Enter your dashboard token</div>
 <div class="error" id="error">Invalid token</div>
 <form onsubmit="return doLogin(event)">
@@ -1207,7 +1207,7 @@ def export_zip():
 @dashboard_app.route("/export/transcripts", methods=["GET"])
 def export_transcripts():
     voicemails = load_voicemails()
-    lines = [f"Hermes Phone — Voicemail Transcripts", f"Exported: {datetime.now().isoformat()}", "=" * 50, ""]
+    lines = [f"Dialtone — Voicemail Transcripts", f"Exported: {datetime.now().isoformat()}", "=" * 50, ""]
     for vm in voicemails:
         caller = vm.get("from", "unknown").replace("+", "")
         lines.append(f"From: {caller}")

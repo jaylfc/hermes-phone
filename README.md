@@ -4,6 +4,8 @@
 
 Dialtone is a framework-agnostic VoIP/IVR service that connects any AI agent to a real phone number via Twilio. Your agent handles incoming calls, makes outbound calls, manages voicemails, and more — with pluggable STT, TTS, and LLM backends. Works on macOS, Linux, and Windows/WSL2.
 
+> **Offline by default** — a fresh install runs a local LLM (Ollama, auto-sized to your Mac's RAM) plus local voice (mlx-whisper STT + Kokoro TTS on Apple Silicon), so you need **no API keys except Twilio**. Point `AGENT_PROVIDER` at Hermes Gateway or any cloud provider whenever you like.
+
 ---
 
 ## Built on Hermes Agent
@@ -29,7 +31,7 @@ HERMES_GATEWAY_TOKEN=your-hermes-key
 HERMES_MODEL_OVERRIDE=               # empty = use agent's default model
 ```
 
-When `AGENT_PROVIDER` is set to `hermes-gateway` or left on `auto`, Dialtone automatically detects and connects to a running Hermes Gateway instance.
+Set `AGENT_PROVIDER=hermes-gateway` (or `auto`, which tries Hermes first) and Dialtone detects and connects to a running Hermes Gateway instance.
 
 **Not a Hermes user?** No problem — Dialtone works with any framework. Read on.
 
@@ -75,7 +77,7 @@ Dialtone is framework-agnostic. Plug in any AI agent or LLM:
 | **Xiaomi MiMo** | `xiaomi` | MiMo 2.5 reasoning model, free tier available |
 | **Any OpenAI-compat** | `openai-compat` | Set base URL + API key + model name |
 
-**Auto-detection:** When `AGENT_PROVIDER=auto` (default), Dialtone tries Hermes Gateway first, then falls back to direct LLM calls, then a no-op fallback.
+**Auto-detection:** When `AGENT_PROVIDER=auto`, Dialtone tries Hermes Gateway first, then falls back to direct LLM calls, then a no-op fallback. (The out-of-the-box default is `ollama` — fully offline, no API key.)
 
 **How it works:** Each backend implements the same `AgentBackend` interface:
 - `health_check()` — is the backend reachable?
@@ -144,10 +146,10 @@ Adding a new backend? Create a file in `agents/` and register it in the factory.
 - Export: ZIP (audio + metadata + transcripts) or plain text
 
 **Web Dashboard (port 5051)**
-- Dark theme, mobile-friendly design
+- Light & dark theme, mobile-friendly design
 - Stats overview (total voicemails, recent activity)
 - Voicemail manager with playback and transcription
-- Outbound call form
+- Phone dialpad for outbound calls
 - Full settings panel — all `.env` options configurable via UI
 - Provider discovery: browse and install STT/TTS/LLM providers
 - Model discovery: fetch available models from Hermes, Ollama, LM Studio, OpenRouter
@@ -205,13 +207,13 @@ Install under WSL2 using the Linux instructions above. Access the web dashboard 
 
 ## Configuration
 
-All settings live in `~/.hermes/phone-agent/.env` and can be changed via the web dashboard (`/settings.html`) or the macOS native settings panel.
+All settings live in `~/.hermes-phone/.env` and can be changed via the web dashboard (`/settings.html`) or the macOS native settings panel.
 
 ### Agent Backend
 
 ```bash
-# Choose your backend (default: auto-detect)
-AGENT_PROVIDER=auto              # auto | hermes-gateway | openai | openrouter | ollama | lmstudio | xiaomi | openai-compat
+# Choose your backend (default: ollama — fully offline, no API key)
+AGENT_PROVIDER=ollama            # ollama | hermes-gateway | openai | openrouter | lmstudio | xiaomi | openai-compat | auto
 
 # Hermes Gateway
 HERMES_GATEWAY_URL=http://127.0.0.1:8642

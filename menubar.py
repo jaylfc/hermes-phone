@@ -1,5 +1,5 @@
 """
-Hermes Phone — macOS Menu Bar App
+Dialtone — macOS Menu Bar App
 
 Single phone icon that changes color:
   🟢 = server running
@@ -95,7 +95,7 @@ class PhoneMenuBar(rumps.App):
     def __init__(self):
         # Start with red icon (not running)
         icon = ICON_RED if Path(ICON_RED).exists() else None
-        super().__init__(name="Hermes Phone", title="", icon=icon, quit_button=None)
+        super().__init__(name="Dialtone", title="", icon=icon, quit_button=None)
         self.running = False
         self.voicemails = []
         self.health_data = {}
@@ -174,7 +174,7 @@ class PhoneMenuBar(rumps.App):
         try:
             r = requests.get(HEALTH_URL, timeout=2)
             if r.status_code == 200:
-                rumps.notification("Hermes Phone", "", "Server already running")
+                rumps.notification("Dialtone", "", "Server already running")
                 return
         except:
             pass
@@ -188,11 +188,11 @@ class PhoneMenuBar(rumps.App):
                 stdout=log,
                 stderr=log,
             )
-        rumps.notification("Hermes Phone", "", "Server starting...")
+        rumps.notification("Dialtone", "", "Server starting...")
 
     def stop_server(self, _):
         subprocess.run(["pkill", "-f", "server.py"], capture_output=True)
-        rumps.notification("Hermes Phone", "", "Server stopped")
+        rumps.notification("Dialtone", "", "Server stopped")
 
     def restart_server(self, _):
         self.stop_server(_)
@@ -213,11 +213,11 @@ class PhoneMenuBar(rumps.App):
             try:
                 r = requests.post(CALL_URL, json={"to": response.text}, headers=api_headers(), timeout=10)
                 if r.status_code == 200:
-                    rumps.notification("Hermes Phone", "", f"Calling {response.text}...")
+                    rumps.notification("Dialtone", "", f"Calling {response.text}...")
                 else:
-                    rumps.notification("Hermes Phone", "", f"Call failed: {r.json().get('error', 'unknown')}")
+                    rumps.notification("Dialtone", "", f"Call failed: {r.json().get('error', 'unknown')}")
             except Exception as e:
-                rumps.notification("Hermes Phone", "", f"Call failed: {e}")
+                rumps.notification("Dialtone", "", f"Call failed: {e}")
 
     def open_settings(self, _):
         """Open native macOS settings window."""
