@@ -168,6 +168,7 @@ case $LLM_CHOICE in
         read -p "OpenAI API Key: " LLM_KEY
         LLM_BASE_URL="https://api.openai.com/v1"
         LLM_PROVIDER="openai"
+        AGENT_PROVIDER="openai"
         read -p "Model [gpt-4o-mini]: " LLM_MODEL
         LLM_MODEL="${LLM_MODEL:-gpt-4o-mini}"
         ;;
@@ -175,12 +176,14 @@ case $LLM_CHOICE in
         read -p "Xiaomi API Key: " LLM_KEY
         LLM_BASE_URL="https://token-plan-ams.xiaomimimo.com/v1"
         LLM_PROVIDER="xiaomi"
+        AGENT_PROVIDER="xiaomi"
         LLM_MODEL="mimo-v2.5"
         ;;
     3)
         read -p "OpenRouter API Key: " LLM_KEY
         LLM_BASE_URL="https://openrouter.ai/api/v1"
         LLM_PROVIDER="openrouter"
+        AGENT_PROVIDER="openrouter"
         read -p "Model [anthropic/claude-sonnet-4]: " LLM_MODEL
         LLM_MODEL="${LLM_MODEL:-anthropic/claude-sonnet-4}"
         ;;
@@ -188,6 +191,7 @@ case $LLM_CHOICE in
         LLM_KEY="ollama"
         LLM_BASE_URL="http://localhost:11434/v1"
         LLM_PROVIDER="openai"
+        AGENT_PROVIDER="ollama"
         read -p "Model [llama3]: " LLM_MODEL
         LLM_MODEL="${LLM_MODEL:-llama3}"
         ;;
@@ -195,6 +199,7 @@ case $LLM_CHOICE in
         read -p "API Key: " LLM_KEY
         read -p "Base URL: " LLM_BASE_URL
         LLM_PROVIDER="openai"
+        AGENT_PROVIDER="openai"
         read -p "Model: " LLM_MODEL
         ;;
 esac
@@ -229,6 +234,8 @@ DEEPGRAM_KEY="${DEEPGRAM_KEY:-$(get_env DEEPGRAM_API_KEY)}"
 LLM_KEY="${LLM_KEY:-$(get_env OPENAI_API_KEY)}"
 LLM_BASE_URL="${LLM_BASE_URL:-$(get_env OPENAI_BASE_URL)}"
 LLM_PROVIDER="${LLM_PROVIDER:-$(get_env LLM_PROVIDER)}"
+AGENT_PROVIDER="${AGENT_PROVIDER:-$(get_env AGENT_PROVIDER)}"
+AGENT_PROVIDER="${AGENT_PROVIDER:-ollama}"   # offline default — local Ollama, no key
 LLM_MODEL="${LLM_MODEL:-$(get_env LLM_MODEL)}"
 VOICEMAIL_EMAIL="${VOICEMAIL_EMAIL:-$(get_env VOICEMAIL_EMAIL)}"
 TELEGRAM_TOKEN="${TELEGRAM_TOKEN:-$(get_env TELEGRAM_BOT_TOKEN)}"
@@ -249,6 +256,9 @@ TWILIO_PHONE_NUMBER=$TWILIO_PHONE
 
 # Deepgram (STT)
 DEEPGRAM_API_KEY=$DEEPGRAM_KEY
+
+# Agent backend (which AI answers calls — see agents/__init__.py)
+AGENT_PROVIDER=$AGENT_PROVIDER
 
 # LLM
 LLM_PROVIDER=$LLM_PROVIDER

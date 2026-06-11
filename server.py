@@ -31,7 +31,7 @@ from datetime import datetime
 from provider_registry import PROVIDER_DEPS, check_provider_installed, get_provider_status
 
 # Agent backend (lazy-loaded)
-from agents import get_agent_backend
+from agents import get_agent_backend, DEFAULT_AGENT_PROVIDER
 
 import requests as http_requests
 from flask import Flask, request, Response, jsonify
@@ -80,7 +80,7 @@ HERMES_MODEL_OVERRIDE = env("HERMES_MODEL_OVERRIDE")
 # Legacy LLM (fallback if Hermes Gateway not available).
 # Offline-by-default: a fresh install runs a local Ollama model + local voice, so
 # no API keys are needed except Twilio. Override any of these from the dashboard.
-AGENT_PROVIDER = env("AGENT_PROVIDER", "ollama")
+AGENT_PROVIDER = env("AGENT_PROVIDER", DEFAULT_AGENT_PROVIDER)
 LLM_PROVIDER = env("LLM_PROVIDER", "ollama")
 LLM_MODEL = env("LLM_MODEL", "qwen3:8b")  # installer tiers this by Mac RAM
 XIAOMI_KEY = env("XIAOMI_API_KEY")
