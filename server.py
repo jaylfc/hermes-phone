@@ -248,6 +248,33 @@ def _record_pin_fail(caller):
         count, first = 0, time.time()
     pin_attempts[caller] = (count + 1, first)
 
+
+# ── One-time stream tokens (authenticate /ws/call) ──────────────────
+# /ws/call is on the public webhook port and Twilio can't sign WS upgrades,
+# so each <Connect><Stream> TwiML embeds a single-use token as a <Parameter>;
+# the WS handler rejects any connection whose start event doesn't redeem one.
+stream_tokens = {}  # token -> {"call_sid": str, "ts": float}
+STREAM_TOKEN_TTL = 120  # Twilio connects the stream within seconds of the TwiML
+
+
+def _issue_stream_token(call_sid):
+    now = time.time()
+    for t, rec in list(stream_tokens.items()):
+        if now - rec["ts"] > STREAM_TOKEN_TTL:
+            stream_tokens.pop(t, None)
+    token = secrets.token_urlsafe(24)
+    stream_tokens[token] = {"call_sid": call_sid, "ts": now}
+    return token
+
+
+def _redeem_stream_token(token, call_sid):
+    rec = stream_tokens.pop(token or "", None)  # single-use
+    if not rec:
+        return False
+    if time.time() - rec["ts"] > STREAM_TOKEN_TTL:
+        return False
+    return hmac.compare_digest(rec["call_sid"], call_sid or "")
+
 # ═══════════════════════════════════════════════════════════════════
 # Auth helpers (dashboard only)
 # ═══════════════════════════════════════════════════════════════════
@@ -651,7 +678,8 @@ def check_pin():
         print(f"✅ PIN correct — connecting {caller} to AI")
         resp.say("Connecting you now.", voice=TTS_VOICE, language=TTS_LANGUAGE)
         connect = Connect()
-        connect.stream(url=_ws_url())
+        stream = connect.stream(url=_ws_url())
+        stream.parameter(name="token", value=_issue_stream_token(call_sid))
         resp.append(connect)
     else:
         if not locked:
@@ -737,7 +765,8 @@ def handle_outgoing():
     print(f"📱 Outgoing connected: {call_sid}")
     resp = VoiceResponse()
     connect = Connect()
-    connect.stream(url=_ws_url())
+    stream = connect.stream(url=_ws_url())
+    stream.parameter(name="token", value=_issue_stream_token(call_sid))
     resp.append(connect)
     return Response(str(resp), mimetype="text/xml")
 
@@ -755,6 +784,24 @@ def handle_status():
                 print(f"  {tag} {m['text']}")
             print(f"{'='*50}")
     return "", 204
+
+def _accumulate_stt_message(msg, transcript_buf):
+    """Fold one Deepgram live message into the turn buffer.
+
+    Appends only finalized segments — interim results repeat the same words
+    and would duplicate text sent to the LLM. Returns True when the caller's
+    utterance has ended: speech_final marks endpointing; is_final alone fires
+    per segment mid-sentence (used only as a fallback when the SDK message
+    carries no speech_final attribute at all).
+    """
+    text = ""
+    if hasattr(msg, "channel") and msg.channel:
+        text = msg.channel.alternatives[0].transcript or ""
+    if text.strip() and getattr(msg, "is_final", False):
+        transcript_buf.append(text)
+    sf = getattr(msg, "speech_final", None)
+    return bool(sf) or (sf is None and bool(getattr(msg, "is_final", False)))
+
 
 @webhook_sock.route("/ws/call")
 def handle_ws(ws):
@@ -777,28 +824,30 @@ def handle_ws(ws):
 
     transcript_buf = []
     speech_final = False
+    buf_lock = threading.Lock()  # Deepgram callbacks fire on their own thread
 
     if dg_conn:
         from deepgram.core.events import EventType
         def on_message(msg):
             nonlocal speech_final
-            if hasattr(msg, "channel") and msg.channel:
-                text = msg.channel.alternatives[0].transcript
-                if text.strip():
-                    transcript_buf.append(text)
-                    if getattr(msg, "is_final", False):
-                        speech_final = True
+            with buf_lock:
+                if _accumulate_stt_message(msg, transcript_buf):
+                    speech_final = True
         dg_conn.on(EventType.MESSAGE, on_message)
 
     try:
         while True:
             data = ws.receive(timeout=30)
             if data is None:
-                break
+                continue  # receive timeout (silence/hold) — keep the session alive
             msg = json.loads(data)
             if msg["event"] == "start":
                 stream_sid = msg["start"]["streamSid"]
                 call_sid = msg["start"]["callSid"]
+                params = msg["start"].get("customParameters") or {}
+                if not _redeem_stream_token(params.get("token"), call_sid):
+                    print(f"⛔ /ws/call rejected: missing/invalid stream token ({call_sid})")
+                    break
             elif msg["event"] == "media":
                 audio = base64.b64decode(msg["media"]["payload"])
                 if dg_conn:
@@ -806,17 +855,19 @@ def handle_ws(ws):
             elif msg["event"] == "stop":
                 break
 
-            if speech_final and stream_sid:
-                full_text = " ".join(transcript_buf).strip()
-                transcript_buf.clear()
-                speech_final = False
-                if full_text and len(full_text) > 2:
-                    print(f"💬 User: {full_text}")
-                    reply = get_llm_response(call_sid or "ws", full_text)
-                    print(f"🤖 AI: {reply}")
-                    audio = synthesize_speech(reply)
-                    if audio:
-                        send_audio_to_ws(ws, stream_sid, audio)
+            full_text = ""
+            with buf_lock:
+                if speech_final and stream_sid:
+                    full_text = " ".join(transcript_buf).strip()
+                    transcript_buf.clear()
+                    speech_final = False
+            if full_text and len(full_text) > 2:
+                print(f"💬 User: {full_text}")
+                reply = get_llm_response(call_sid or "ws", full_text)
+                print(f"🤖 AI: {reply}")
+                audio = synthesize_speech(reply)
+                if audio:
+                    send_audio_to_ws(ws, stream_sid, audio)
     except Exception as e:
         print(f"❌ WS error: {e}")
     finally:
