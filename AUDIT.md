@@ -1,6 +1,6 @@
 # Dialtone — Technical Audit & Improvement Plan
 
-*Audit date: 2026-06-11. Analysis only — no code was modified. Every finding cites file:line; facts are labelled **[F]** (verified in code or by execution) and judgments **[J]**.*
+*Audit date: 2026-06-11, against commit f9231ff (pre-fix baseline). This report describes the codebase BEFORE the accompanying fixes: PR #84 resolves findings S1, S3, C1, C2, C3, C5, D1, O1, O2 and the crash vector behind issue #51 — read those findings as historical context, not open regressions. Every finding cites file:line; facts are labelled **[F]** (verified in code or by execution) and judgments **[J]**.*
 
 ---
 
@@ -126,15 +126,19 @@ Strengths: the README is otherwise well-structured, the security section accurat
 ## Improvement Strategy
 
 ### Theme 1 — Close the gap between the advertised product and the implemented one
+
 Most findings (C1, C2, A1, D1, Doc1, T2) are one disease: **surface area grew by configuration and documentation, not implementation, and nothing forces the three layers (README / settings schema / code) to agree.** Target state: a single provider registry is the only source of truth; the settings UI and README render *from* it (or are asserted against it by a test, extending the existing `test_all_settings_editable.py` pattern); every selectable provider either works or is labelled "planned". Principle: *a small true matrix beats a large aspirational one.* Done when: README matrix == implemented set, an integration test asserts the backend actually selected on a default install, and `/api/providers` has a test.
 
 ### Theme 2 — Harden and test the realtime call path (the core 20%)
+
 S1, C3, C4, C5, A3, T1 all live in ~200 lines of `server.py`. Target state: the WS loop is extracted into a testable unit with injected STT/agent/TTS, authenticated via per-call stream tokens, with correct final-transcript assembly and an explicit silence policy. Principle: *the code that talks to paying phone lines deserves the most tests, not the fewest.* Done when: WS connections without a valid call token are closed; a unit test feeds fake Deepgram interim+final events and asserts the exact LLM input; CI covers `/voice/*` TwiML routes.
 
 ### Theme 3 — One configuration system with honest semantics
+
 C1, C6, C7, Q3: there are four config readers (import-time constants, live `env()`, the settings file parser, menubar's copy) and two defaults for the same key. Target state: one accessor module; every setting declared once with `live` vs `restart` semantics that the UI hints render from; the backend singleton invalidates when relevant keys change. Done when: the defaults in `server.py` and `agents/` come from one place and a test asserts UI hints match actual reload behaviour.
 
 ### Theme 4 — Modest CI/ops floor
+
 O1, O2, D1: ruff in CI, `requirements.txt` with platform markers as the single dep source for CI, pre-commit hook auto-installed. Done when: CI fails on lint errors and installs from `requirements.txt`.
 
 ### Explicitly NOT recommended (trade-offs)
@@ -191,6 +195,7 @@ O1, O2, D1: ruff in CI, `requirements.txt` with platform markers as the single d
 | 3.7 | Stop accepting `?token=` for anything but the menubar bootstrap path, or move to a short-lived single-use bootstrap token (S4) | S | |
 
 ### Quick wins (do immediately, all S effort, high impact)
+
 **1.4** (`/api/providers` KeyError — one line + test), **1.2** (default-backend alignment), **1.3** (interim transcript fix), **0.3** (CI from requirements.txt + ruff), **3.1** (delete stale scripts), **1.7** (onclick fix).
 
 ### Implementation sketches — top 3 tasks

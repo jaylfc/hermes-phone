@@ -318,8 +318,8 @@ case ${LLM_CHOICE:-7} in
         LLM_BASE_URL="http://localhost:11434/v1"
         LLM_PROVIDER="openai"
         AGENT_PROVIDER="ollama"
-        read -p "Model [llama3]: " LLM_MODEL
-        LLM_MODEL="${LLM_MODEL:-llama3}"
+        read -r -p "Model [qwen3:8b]: " LLM_MODEL
+        LLM_MODEL="${LLM_MODEL:-qwen3:8b}"
         ;;
     5)
         read -p "Hermes Gateway URL [http://127.0.0.1:8642]: " HERMES_URL
@@ -342,8 +342,8 @@ case ${LLM_CHOICE:-7} in
         LLM_PROVIDER="openai"
         AGENT_PROVIDER="ollama"   # offline default — configure later from the dashboard
         LLM_KEY=""
-        LLM_BASE_URL="https://api.openai.com/v1"
-        LLM_MODEL="gpt-4o-mini"
+        LLM_BASE_URL=""
+        LLM_MODEL="qwen3:8b"
         echo -e "${CYAN}  ℹ️  Configure LLM from dashboard later${NC}"
         ;;
 esac

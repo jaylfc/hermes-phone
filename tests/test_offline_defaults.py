@@ -3,6 +3,11 @@ Ollama backend — asserting the backend the factory actually builds, not just
 the display constant (regression: #67, where the factory default diverged
 from server.py and a fresh install silently got NoOpAgent)."""
 
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 import agents
@@ -29,8 +34,22 @@ def scrubbed_env(monkeypatch):
     agents.reset_agent_backend()
 
 
-def test_display_constant_matches_factory_default():
-    assert server.AGENT_PROVIDER == agents.DEFAULT_AGENT_PROVIDER == "ollama"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+@pytest.mark.skipif((_PROJECT_ROOT / ".env").exists(),
+                    reason="a local .env legitimately overrides fresh-install defaults")
+def test_display_constant_matches_factory_default_in_fresh_process():
+    """Import server in a clean subprocess so the assertion exercises the real
+    fresh-install default rather than this test process's ambient state."""
+    clean_env = {k: v for k, v in os.environ.items() if k not in _SELECTION_VARS}
+    out = subprocess.run(
+        [sys.executable, "-c",
+         "import server, agents; print(server.AGENT_PROVIDER, agents.DEFAULT_AGENT_PROVIDER)"],
+        capture_output=True, text=True, env=clean_env, cwd=_PROJECT_ROOT, timeout=60,
+    )
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.split() == ["ollama", "ollama"]
 
 
 def test_fresh_install_selects_local_ollama(scrubbed_env):

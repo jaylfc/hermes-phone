@@ -28,7 +28,7 @@ from datetime import datetime
 from provider_registry import PROVIDER_DEPS, get_provider_status
 
 # Agent backend (lazy-loaded)
-from agents import get_agent_backend, DEFAULT_AGENT_PROVIDER
+from agents import get_agent_backend, reset_agent_backend, DEFAULT_AGENT_PROVIDER
 
 import requests as http_requests
 from flask import Flask, request, Response, jsonify
@@ -252,20 +252,23 @@ def _record_pin_fail(caller):
 # the WS handler rejects any connection whose start event doesn't redeem one.
 stream_tokens = {}  # token -> {"call_sid": str, "ts": float}
 STREAM_TOKEN_TTL = 120  # Twilio connects the stream within seconds of the TwiML
+stream_tokens_lock = threading.Lock()  # webhook threads issue, WS threads redeem
 
 
 def _issue_stream_token(call_sid):
     now = time.time()
-    for t, rec in list(stream_tokens.items()):
-        if now - rec["ts"] > STREAM_TOKEN_TTL:
-            stream_tokens.pop(t, None)
     token = secrets.token_urlsafe(24)
-    stream_tokens[token] = {"call_sid": call_sid, "ts": now}
+    with stream_tokens_lock:
+        for t, rec in list(stream_tokens.items()):
+            if now - rec["ts"] > STREAM_TOKEN_TTL:
+                stream_tokens.pop(t, None)
+        stream_tokens[token] = {"call_sid": call_sid, "ts": now}
     return token
 
 
 def _redeem_stream_token(token, call_sid):
-    rec = stream_tokens.pop(token or "", None)  # single-use
+    with stream_tokens_lock:
+        rec = stream_tokens.pop(token or "", None)  # single-use
     if not rec:
         return False
     if time.time() - rec["ts"] > STREAM_TOKEN_TTL:
@@ -887,7 +890,8 @@ def health():
         "status": "ok",
         "twilio": bool(TWILIO_SID),
         "deepgram": bool(DEEPGRAM_KEY),
-        "agent_backend": AGENT_PROVIDER or "auto",
+        # Read live so a settings change is reflected without a restart
+        "agent_backend": env("AGENT_PROVIDER", DEFAULT_AGENT_PROVIDER) or "auto",
         "agent_ok": agent_health.get("ok", False),
         "agent_model": agent_health.get("model"),
         "voicemails": len(load_voicemails()),
@@ -1158,7 +1162,8 @@ def api_get_settings():
     result["_status"] = {
         "twilio": bool(TWILIO_SID),
         "deepgram": bool(DEEPGRAM_KEY),
-        "agent_backend": AGENT_PROVIDER or "auto",
+        # Read live so a settings change is reflected without a restart
+        "agent_backend": env("AGENT_PROVIDER", DEFAULT_AGENT_PROVIDER) or "auto",
         "agent_ok": agent_health.get("ok", False),
         "voice_engine": voice_engine.mode if voice_engine else "none",
     }
@@ -1182,6 +1187,18 @@ def api_get_settings():
     ]
     return jsonify(result)
 
+# Settings that change which agent backend get_agent_backend() builds; updating
+# any of them invalidates the cached singleton so the change applies to the
+# next call without a server restart.
+AGENT_BACKEND_KEYS = {
+    "AGENT_PROVIDER", "HERMES_GATEWAY_URL", "HERMES_GATEWAY_TOKEN", "HERMES_MODEL_OVERRIDE",
+    "LLM_PROVIDER", "LLM_MODEL", "LLM_BASE_URL_OVERRIDE", "LLM_API_KEY_OVERRIDE",
+    "LLM_MODEL_OVERRIDE", "OLLAMA_BASE_URL", "LMSTUDIO_BASE_URL",
+    "XIAOMI_API_KEY", "XIAOMI_BASE_URL", "OPENAI_API_KEY", "OPENAI_BASE_URL",
+    "OPENROUTER_API_KEY", "OPENROUTER_BASE_URL",
+}
+
+
 @dashboard_app.route("/api/settings", methods=["POST"])
 def api_update_settings():
     data = request.json or {}
@@ -1196,6 +1213,9 @@ def api_update_settings():
             else:
                 update_setting(key, str(value))
                 updated.append(key)
+    if AGENT_BACKEND_KEYS.intersection(updated) or AGENT_BACKEND_KEYS.intersection(deleted):
+        reset_agent_backend()
+        _health_cache["ts"] = 0  # next /health re-probes the new backend
     return jsonify({"status": "ok", "updated": updated, "deleted": deleted})
 
 @dashboard_app.route("/api/models", methods=["GET"])

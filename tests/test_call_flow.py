@@ -74,6 +74,7 @@ class TestOutgoing:
         r = webhook_client.post("/voice/outgoing", data={"CallSid": "CA9"})
         xml = r.get_data(as_text=True)
         assert '<Stream' in xml and 'name="token"' in xml
+        assert len(server.stream_tokens) == 1
         (rec,) = server.stream_tokens.values()
         assert rec["call_sid"] == "CA9"
 

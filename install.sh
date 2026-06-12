@@ -192,8 +192,8 @@ case $LLM_CHOICE in
         LLM_BASE_URL="http://localhost:11434/v1"
         LLM_PROVIDER="openai"
         AGENT_PROVIDER="ollama"
-        read -p "Model [llama3]: " LLM_MODEL
-        LLM_MODEL="${LLM_MODEL:-llama3}"
+        read -r -p "Model [${OLLAMA_MODEL:-qwen3:8b}]: " LLM_MODEL
+        LLM_MODEL="${LLM_MODEL:-${OLLAMA_MODEL:-qwen3:8b}}"
         ;;
     5)
         read -p "API Key: " LLM_KEY
