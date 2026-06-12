@@ -169,6 +169,14 @@ class TestTurnAssembly:
         assert server._accumulate_stt_message(_msg("", is_final=True, speech_final=False), buf) is False
         assert buf == []
 
+    def test_message_with_no_alternatives_is_ignored(self):
+        # Deepgram edge-case payloads must not raise on the callback thread
+        chan = type("Chan", (), {"alternatives": []})()
+        msg = type("Msg", (), {"channel": chan, "is_final": True, "speech_final": False})()
+        buf = []
+        assert server._accumulate_stt_message(msg, buf) is False
+        assert buf == []
+
 
 # ─── WS handler auth gating (pre-auth media must not reach STT) ──────────────
 

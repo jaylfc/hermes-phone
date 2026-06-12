@@ -98,3 +98,35 @@ class TestVoicemailMetadata:
     def test_load_missing_file_returns_empty(self, tmp_path, monkeypatch):
         monkeypatch.setattr(server, "METADATA_FILE", tmp_path / "nope.json")
         assert server.load_voicemails() == []
+
+
+class TestLiveTokenChange:
+    """Changing DASHBOARD_TOKEN via the API applies live: the new token works
+    immediately, the old one stops working, and existing sessions are revoked
+    (the behaviour the schema hint promises)."""
+
+    def _client(self, monkeypatch, tmp_path):
+        envf = tmp_path / ".env"
+        envf.write_text('DASHBOARD_TOKEN="oldtok"\n')
+        monkeypatch.setattr(server, "ENV_FILE", envf)
+        monkeypatch.setattr(server, "DASHBOARD_TOKEN", "oldtok")
+        monkeypatch.setenv("DASHBOARD_TOKEN", "oldtok")
+        server.dashboard_sessions.clear()
+        return server.dashboard_app.test_client()
+
+    def test_new_token_applies_without_restart(self, monkeypatch, tmp_path):
+        c = self._client(monkeypatch, tmp_path)
+        r = c.post("/api/settings", json={"DASHBOARD_TOKEN": "newtok"},
+                   headers={"Authorization": "Bearer oldtok"})
+        assert r.status_code == 200
+        assert c.get("/voicemails", headers={"Authorization": "Bearer oldtok"}).status_code == 401
+        assert c.get("/voicemails", headers={"Authorization": "Bearer newtok"}).status_code == 200
+
+    def test_existing_sessions_revoked_on_token_change(self, monkeypatch, tmp_path):
+        c = self._client(monkeypatch, tmp_path)
+        c.post("/login", json={"token": "oldtok"})
+        assert c.get("/voicemails").status_code == 200  # session cookie works
+        c.post("/api/settings", json={"DASHBOARD_TOKEN": "newtok"},
+               headers={"Authorization": "Bearer oldtok"})
+        assert not server.dashboard_sessions
+        assert c.get("/voicemails").status_code == 401  # old session signed out

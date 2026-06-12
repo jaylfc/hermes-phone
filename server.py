@@ -279,10 +279,19 @@ def _redeem_stream_token(token, call_sid):
 # Auth helpers (dashboard only)
 # ═══════════════════════════════════════════════════════════════════
 
+def _dashboard_token():
+    """Current dashboard token, read live so a settings change applies without
+    a restart. Falls back to the import-time value when the env var is absent
+    (e.g. tests that patch the module constant)."""
+    tok = os.environ.get("DASHBOARD_TOKEN")
+    return DASHBOARD_TOKEN if tok is None else tok
+
+
 def check_auth(token):
-    if not DASHBOARD_TOKEN:
+    expected = _dashboard_token()
+    if not expected:
         return True  # No token set = no auth (first run)
-    return hmac.compare_digest(token, DASHBOARD_TOKEN)
+    return hmac.compare_digest(token, expected)
 
 def get_auth_headers():
     """Headers for outbound API calls to Hermes Gateway."""
@@ -339,7 +348,7 @@ def require_dashboard_auth():
     path = request.path
     if path in ("/login", "/logout", "/health"):
         return None
-    if not DASHBOARD_TOKEN:
+    if not _dashboard_token():
         return None  # No token configured = open (first run)
     # Valid session cookie?
     if _session_valid(request.cookies.get(AUTH_COOKIE, "")):
@@ -795,7 +804,10 @@ def _accumulate_stt_message(msg, transcript_buf):
     """
     text = ""
     if hasattr(msg, "channel") and msg.channel:
-        text = msg.channel.alternatives[0].transcript or ""
+        # Guard the shape: a payload with no alternatives must not raise on
+        # Deepgram's callback thread (it would drop transcripts for the call)
+        alts = getattr(msg.channel, "alternatives", None) or []
+        text = (alts[0].transcript or "") if alts else ""
     if text.strip() and getattr(msg, "is_final", False):
         transcript_buf.append(text)
     sf = getattr(msg, "speech_final", None)
@@ -1224,6 +1236,10 @@ def api_update_settings():
     if AGENT_BACKEND_KEYS.intersection(updated) or AGENT_BACKEND_KEYS.intersection(deleted):
         reset_agent_backend()
         _health_cache["ts"] = 0  # next /health re-probes the new backend
+    if "DASHBOARD_TOKEN" in updated or "DASHBOARD_TOKEN" in deleted:
+        # The schema hint promises this: changing the token signs out
+        # existing dashboard sessions (auth itself reads the token live).
+        dashboard_sessions.clear()
     return jsonify({"status": "ok", "updated": updated, "deleted": deleted})
 
 @dashboard_app.route("/api/models", methods=["GET"])
