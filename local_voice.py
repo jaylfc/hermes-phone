@@ -11,7 +11,6 @@ Fallback: edge-tts (cloud), AVSpeechSynthesizer (native macOS)
 
 import os
 import sys
-import base64
 import audioop
 import subprocess
 from pathlib import Path
@@ -26,15 +25,20 @@ TTS_MODEL = "prince-canuma/Kokoro-82M-4bit"  # 4-bit quantized, ~50MB
 
 
 def ensure_models():
-    """Download models if not already present. Returns True if ready."""
+    """Check that the MLX voice packages are importable. Returns True if ready.
+
+    Never installs from here: running pip inside the long-lived server process
+    blocks boot and can crash on macOS (fork-after-framework-init, issue #51).
+    Install via install.sh or `python local_voice.py --install`.
+    """
     try:
-        import mlx_whisper
-        import mlx_audio
-        print("  ✅ MLX models already installed")
+        import mlx_whisper  # noqa: F401
+        import mlx_audio  # noqa: F401
         return True
     except ImportError:
-        print("  📦 Installing MLX voice models...")
-        return install_local_voice()
+        print("  ℹ️  MLX voice not installed — run `python local_voice.py --install` "
+              "(or pip install mlx-whisper mlx-audio) to enable local voice")
+        return False
 
 
 def install_local_voice():
@@ -209,21 +213,14 @@ class NativeTTS:
     """Zero-dependency fallback using macOS AVSpeechSynthesizer."""
 
     def synthesize_for_twilio(self, text: str) -> bytes:
-        """Synthesize using macOS native TTS. Returns PCM16 at 8kHz."""
-        try:
-            import AVFoundation
-            import tempfile
+        """Always returns silence.
 
-            synth = AVFoundation.AVSpeechSynthesizer.new()
-            utterance = AVFoundation.AVSpeechUtterance.speechUtteranceWithString_(text)
-            utterance.setVoice_(AVFoundation.AVSpeechSynthesisVoice.voiceWithLanguage_("en-GB"))
-            utterance.setRate_(0.5)
-
-            # macOS native TTS doesn't easily output to bytes
-            # Fall through to edge-tts for now
-            return b""
-        except Exception:
-            return b""
+        AVSpeechSynthesizer has no direct PCM-bytes output path without a
+        subprocess; this engine exists only as a last-resort fallback so
+        VoiceEngine initialisation doesn't fail when nothing else is
+        available.
+        """
+        return b""
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -266,13 +263,11 @@ class VoiceEngine:
 
     def _init_edge(self):
         """Try edge-tts (cloud)."""
-        try:
-            import edge_tts
+        import importlib.util
+        if importlib.util.find_spec("edge_tts"):
             self.tts = EdgeTTS()
             # STT still needs something local or Deepgram
             self.mode = "edge-cloud"
-        except ImportError:
-            pass
 
     def _init_native(self):
         """Last resort: macOS native."""
@@ -307,3 +302,16 @@ class VoiceEngine:
     @property
     def is_available(self) -> bool:
         return self.mode != "none"
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Local voice engine utilities")
+    parser.add_argument("--install", action="store_true",
+                        help="Install mlx-whisper + mlx-audio into the current interpreter")
+    args = parser.parse_args()
+    if args.install:
+        ok = install_local_voice()
+        raise SystemExit(0 if ok else 1)
+    parser.print_help()

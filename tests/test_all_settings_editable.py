@@ -73,9 +73,9 @@ def test_all_env_vars_in_schema():
     missing = all_keys - schema_keys - ALLOWLIST
 
     assert not missing, (
-        f"The following env vars are READ by the code but NOT present in "
-        f"server.SETTINGS_SCHEMA (add them to the schema or to the ALLOWLIST "
-        f"with a documented reason):\n  "
+        "The following env vars are READ by the code but NOT present in "
+        "server.SETTINGS_SCHEMA (add them to the schema or to the ALLOWLIST "
+        "with a documented reason):\n  "
         + "\n  ".join(sorted(missing))
     )
 
@@ -89,6 +89,6 @@ def test_allowlist_has_no_stale_entries():
     schema_keys = set(server.SETTINGS_SCHEMA.keys())
     stale = ALLOWLIST & schema_keys
     assert not stale, (
-        f"These ALLOWLIST entries are now in SETTINGS_SCHEMA — remove them "
-        f"from the allowlist:\n  " + "\n  ".join(sorted(stale))
+        "These ALLOWLIST entries are now in SETTINGS_SCHEMA — remove them "
+        "from the allowlist:\n  " + "\n  ".join(sorted(stale))
     )

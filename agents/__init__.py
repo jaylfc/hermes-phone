@@ -22,8 +22,18 @@ import os
 from .base import AgentBackend
 from .noop import NoOpAgent
 
+# Out-of-the-box default: local Ollama (offline, keyless). server.py imports
+# this so the displayed provider and the actually-selected backend can't drift.
+DEFAULT_AGENT_PROVIDER = "ollama"
+
 # Singleton instance — lazy-initialized
 _backend: AgentBackend | None = None
+
+
+def reset_agent_backend() -> None:
+    """Drop the cached backend so the next call re-reads configuration."""
+    global _backend
+    _backend = None
 
 
 def get_agent_backend() -> AgentBackend:
@@ -32,7 +42,7 @@ def get_agent_backend() -> AgentBackend:
     if _backend is not None:
         return _backend
 
-    provider = os.environ.get("AGENT_PROVIDER", "").strip().lower()
+    provider = os.environ.get("AGENT_PROVIDER", DEFAULT_AGENT_PROVIDER).strip().lower()
 
     # ── Explicit provider ──────────────────────────────────────────
     if provider == "hermes-gateway":
@@ -59,8 +69,8 @@ def get_agent_backend() -> AgentBackend:
         _backend = OpenAICompatAgent(base_url=base_url, api_key=api_key, model=model)
         return _backend
 
-    # ── Auto-detect (backward-compatible) ──────────────────────────
-    if not provider:
+    # ── Auto-detect ("auto", or empty string written by the settings UI) ──
+    if provider in ("", "auto"):
         _backend = _auto_detect()
         return _backend
 
@@ -118,7 +128,7 @@ def _resolve_openai_compat(provider: str) -> tuple[str, str, str]:
         return (
             os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
             "ollama",  # Ollama doesn't need a real key
-            os.environ.get("LLM_MODEL", "llama3"),
+            os.environ.get("LLM_MODEL", "qwen3:8b"),  # matches server.py default
         )
     if provider == "lmstudio":
         return (

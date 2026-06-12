@@ -433,9 +433,10 @@ Features planned or under consideration for future releases:
 
 Workflow:
 1. Fork and create a feature branch
-2. Make changes, test locally
-3. Open a PR — CodeRabbit reviews automatically
-4. Address feedback, merge
+2. Enable the secrets pre-commit hook (once per clone): `ln -sf ../../pre-commit .git/hooks/pre-commit`
+3. Make changes; run `ruff check .` and `pytest` locally
+4. Open a PR — CI runs lint + tests, CodeRabbit reviews automatically
+5. Address feedback, merge
 
 ---
 

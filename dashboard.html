@@ -1438,9 +1438,9 @@ function toast(msg, type = 'success') {
 
 /* ── Helpers ────────────────────────────────────────────────── */
 function escHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
+  return String(s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
 }
 
 function formatDuration(sec) {
@@ -1592,7 +1592,7 @@ async function loadVoicemails() {
             <audio controls preload="none" src="${API}/voicemails/${escHtml(vm.sid)}/audio" aria-label="Voicemail audio from ${escHtml(vm.from || 'Unknown')}"></audio>
           </div>
           <div class="vm-delete-zone">
-            <button class="delete-btn" onclick="deleteVm('${escHtml(vm.sid)}')" aria-label="Delete voicemail from ${escHtml(vm.from || 'Unknown')}">
+            <button class="delete-btn" data-sid="${escHtml(vm.sid)}" aria-label="Delete voicemail from ${escHtml(vm.from || 'Unknown')}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -1604,6 +1604,9 @@ async function loadVoicemails() {
           </div>
         </article>`;
     }).join('');
+    feed.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteVm(btn.dataset.sid));
+    });
 
   } catch (e) {
     if (meta) meta.textContent = 'Failed to load';

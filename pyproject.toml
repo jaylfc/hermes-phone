@@ -1,0 +1,12 @@
+[tool.ruff]
+target-version = "py311"
+extend-exclude = ["prototype"]
+
+[tool.ruff.lint]
+# Default rules (E4/E7/E9 pycodestyle errors + F pyflakes) plus bare-except.
+extend-select = ["E722"]
+
+[tool.ruff.lint.per-file-ignores]
+# Bulk AppKit symbol imports for the macOS-native UI; pyobjc code reads better
+# with them imported by name than via importlib gymnastics.
+"native_settings.py" = ["F401"]

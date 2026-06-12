@@ -9,14 +9,11 @@ Native settings panel via AppKit (not a web view).
 """
 
 import os
-import sys
-import json
 import subprocess
 import time
 import threading
 import webbrowser
 from pathlib import Path
-from datetime import datetime
 
 import requests
 import rumps
@@ -141,7 +138,7 @@ class PhoneMenuBar(rumps.App):
                         self._update_running(True, r.json())
                     else:
                         self._update_running(False)
-                except:
+                except Exception:
                     self._update_running(False)
                 time.sleep(CHECK_INTERVAL)
         threading.Thread(target=check, daemon=True).start()
@@ -176,7 +173,7 @@ class PhoneMenuBar(rumps.App):
             if r.status_code == 200:
                 rumps.notification("Dialtone", "", "Server already running")
                 return
-        except:
+        except Exception:
             pass
 
         # Start server

@@ -323,6 +323,7 @@ PROVIDER_DEPS = {
     "hermes-gateway": {
         "name": "Hermes Agent (Gateway API)",
         "type": "agent",
+        "backend": "cloud",
         "packages": ["requests"],
         "pip_install": "pip install requests",
         "env_vars": ["HERMES_GATEWAY_URL", "HERMES_GATEWAY_TOKEN"],
@@ -331,6 +332,7 @@ PROVIDER_DEPS = {
     "openai": {
         "name": "OpenAI",
         "type": "agent",
+        "backend": "cloud",
         "packages": ["openai"],
         "pip_install": "pip install openai",
         "env_vars": ["OPENAI_API_KEY"],
@@ -338,6 +340,7 @@ PROVIDER_DEPS = {
     "openrouter": {
         "name": "OpenRouter",
         "type": "agent",
+        "backend": "cloud",
         "packages": ["openai"],
         "pip_install": "pip install openai",
         "env_vars": ["OPENROUTER_API_KEY"],
@@ -345,12 +348,14 @@ PROVIDER_DEPS = {
     "ollama": {
         "name": "Ollama (local)",
         "type": "agent",
+        "backend": "local",
         "packages": [],
         "env_vars": ["OLLAMA_BASE_URL"],
     },
     "lmstudio": {
         "name": "LM Studio (local)",
         "type": "agent",
+        "backend": "local",
         "packages": [],
         "env_vars": ["LMSTUDIO_BASE_URL"],
     },
@@ -385,7 +390,7 @@ def get_provider_status():
         status[pid] = {
             "name": info["name"],
             "type": info["type"],
-            "backend": info["backend"],
+            "backend": info.get("backend", "local"),
             "installed": check["installed"],
             "missing": check["missing"],
             "recommended": info.get("recommended", False),

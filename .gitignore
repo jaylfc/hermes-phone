@@ -30,3 +30,6 @@ voicemails/
 .playwright-mcp/
 /dash-dark.png
 /dash-light.png
+
+# Claude Code agent worktrees (transient)
+.claude/

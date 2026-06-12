@@ -5,7 +5,6 @@ Pure AppKit: NSTabView, NSTextField, NSSecureTextField, NSPopUpButton, NSButton.
 No web views, no HTML — looks and feels like a real Mac preferences pane.
 """
 
-import json
 import requests
 
 try:
@@ -449,7 +448,7 @@ class NativeSettingsWindow:
             time.sleep(4)
             try:
                 self.status_field.setStringValue_("")
-            except:
+            except Exception:
                 pass
         threading.Thread(target=clear, daemon=True).start()
 

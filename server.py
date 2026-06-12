@@ -14,7 +14,6 @@ Voicemail: Record → Transcribe → Store locally + optional Telegram notificat
 """
 
 import os
-import sys
 import json
 import base64
 import time
@@ -24,14 +23,12 @@ import tempfile
 import subprocess
 import hmac
 import secrets
-import functools
-import uuid
 from pathlib import Path
 from datetime import datetime
-from provider_registry import PROVIDER_DEPS, check_provider_installed, get_provider_status
+from provider_registry import PROVIDER_DEPS, get_provider_status
 
 # Agent backend (lazy-loaded)
-from agents import get_agent_backend
+from agents import get_agent_backend, reset_agent_backend, DEFAULT_AGENT_PROVIDER
 
 import requests as http_requests
 from flask import Flask, request, Response, jsonify
@@ -80,7 +77,7 @@ HERMES_MODEL_OVERRIDE = env("HERMES_MODEL_OVERRIDE")
 # Legacy LLM (fallback if Hermes Gateway not available).
 # Offline-by-default: a fresh install runs a local Ollama model + local voice, so
 # no API keys are needed except Twilio. Override any of these from the dashboard.
-AGENT_PROVIDER = env("AGENT_PROVIDER", "ollama")
+AGENT_PROVIDER = env("AGENT_PROVIDER", DEFAULT_AGENT_PROVIDER)
 LLM_PROVIDER = env("LLM_PROVIDER", "ollama")
 LLM_MODEL = env("LLM_MODEL", "qwen3:8b")  # installer tiers this by Mac RAM
 XIAOMI_KEY = env("XIAOMI_API_KEY")
@@ -248,14 +245,53 @@ def _record_pin_fail(caller):
         count, first = 0, time.time()
     pin_attempts[caller] = (count + 1, first)
 
+
+# ── One-time stream tokens (authenticate /ws/call) ──────────────────
+# /ws/call is on the public webhook port and Twilio can't sign WS upgrades,
+# so each <Connect><Stream> TwiML embeds a single-use token as a <Parameter>;
+# the WS handler rejects any connection whose start event doesn't redeem one.
+stream_tokens = {}  # token -> {"call_sid": str, "ts": float}
+STREAM_TOKEN_TTL = 120  # Twilio connects the stream within seconds of the TwiML
+stream_tokens_lock = threading.Lock()  # webhook threads issue, WS threads redeem
+
+
+def _issue_stream_token(call_sid):
+    now = time.time()
+    token = secrets.token_urlsafe(24)
+    with stream_tokens_lock:
+        for t, rec in list(stream_tokens.items()):
+            if now - rec["ts"] > STREAM_TOKEN_TTL:
+                stream_tokens.pop(t, None)
+        stream_tokens[token] = {"call_sid": call_sid, "ts": now}
+    return token
+
+
+def _redeem_stream_token(token, call_sid):
+    with stream_tokens_lock:
+        rec = stream_tokens.pop(token or "", None)  # single-use
+    if not rec:
+        return False
+    if time.time() - rec["ts"] > STREAM_TOKEN_TTL:
+        return False
+    return hmac.compare_digest(rec["call_sid"], call_sid or "")
+
 # ═══════════════════════════════════════════════════════════════════
 # Auth helpers (dashboard only)
 # ═══════════════════════════════════════════════════════════════════
 
+def _dashboard_token():
+    """Current dashboard token, read live so a settings change applies without
+    a restart. Falls back to the import-time value when the env var is absent
+    (e.g. tests that patch the module constant)."""
+    tok = os.environ.get("DASHBOARD_TOKEN")
+    return DASHBOARD_TOKEN if tok is None else tok
+
+
 def check_auth(token):
-    if not DASHBOARD_TOKEN:
+    expected = _dashboard_token()
+    if not expected:
         return True  # No token set = no auth (first run)
-    return hmac.compare_digest(token, DASHBOARD_TOKEN)
+    return hmac.compare_digest(token, expected)
 
 def get_auth_headers():
     """Headers for outbound API calls to Hermes Gateway."""
@@ -312,7 +348,7 @@ def require_dashboard_auth():
     path = request.path
     if path in ("/login", "/logout", "/health"):
         return None
-    if not DASHBOARD_TOKEN:
+    if not _dashboard_token():
         return None  # No token configured = open (first run)
     # Valid session cookie?
     if _session_valid(request.cookies.get(AUTH_COOKIE, "")):
@@ -351,7 +387,7 @@ def init_voice_engine():
             if USE_LOCAL_VOICE == "true":
                 print(f"  ❌ Local voice failed: {e}")
             else:
-                print(f"  ℹ️  Local voice not available, using cloud TTS")
+                print("  ℹ️  Local voice not available, using cloud TTS")
 
     if DEEPGRAM_KEY and (not voice_engine or not voice_engine.stt):
         try:
@@ -608,7 +644,7 @@ def notify_telegram(recording_url, caller, duration, transcription=""):
                               files={"voice": ("voicemail.wav", audio_file, "audio/wav")}, timeout=30)
         try:
             os.unlink(wav_path)
-        except:
+        except OSError:
             pass
     except Exception as e:
         print(f"❌ Telegram notification error: {e}")
@@ -651,7 +687,8 @@ def check_pin():
         print(f"✅ PIN correct — connecting {caller} to AI")
         resp.say("Connecting you now.", voice=TTS_VOICE, language=TTS_LANGUAGE)
         connect = Connect()
-        connect.stream(url=_ws_url())
+        stream = connect.stream(url=_ws_url())
+        stream.parameter(name="token", value=_issue_stream_token(call_sid))
         resp.append(connect)
     else:
         if not locked:
@@ -666,7 +703,6 @@ def check_pin():
 
 @webhook_app.route("/voice/voicemail-complete", methods=["POST"])
 def voicemail_complete():
-    call_sid = request.form.get("CallSid", "unknown")
     recording_url = request.form.get("RecordingUrl", "")
     recording_sid = request.form.get("RecordingSid", "")
     duration = request.form.get("RecordingDuration", "0")
@@ -737,7 +773,8 @@ def handle_outgoing():
     print(f"📱 Outgoing connected: {call_sid}")
     resp = VoiceResponse()
     connect = Connect()
-    connect.stream(url=_ws_url())
+    stream = connect.stream(url=_ws_url())
+    stream.parameter(name="token", value=_issue_stream_token(call_sid))
     resp.append(connect)
     return Response(str(resp), mimetype="text/xml")
 
@@ -756,7 +793,27 @@ def handle_status():
             print(f"{'='*50}")
     return "", 204
 
-@webhook_sock.route("/ws/call")
+def _accumulate_stt_message(msg, transcript_buf):
+    """Fold one Deepgram live message into the turn buffer.
+
+    Appends only finalized segments — interim results repeat the same words
+    and would duplicate text sent to the LLM. Returns True when the caller's
+    utterance has ended: speech_final marks endpointing; is_final alone fires
+    per segment mid-sentence (used only as a fallback when the SDK message
+    carries no speech_final attribute at all).
+    """
+    text = ""
+    if hasattr(msg, "channel") and msg.channel:
+        # Guard the shape: a payload with no alternatives must not raise on
+        # Deepgram's callback thread (it would drop transcripts for the call)
+        alts = getattr(msg.channel, "alternatives", None) or []
+        text = (alts[0].transcript or "") if alts else ""
+    if text.strip() and getattr(msg, "is_final", False):
+        transcript_buf.append(text)
+    sf = getattr(msg, "speech_final", None)
+    return bool(sf) or (sf is None and bool(getattr(msg, "is_final", False)))
+
+
 def handle_ws(ws):
     """Bi-directional audio: Twilio ↔ Deepgram STT ↔ LLM ↔ TTS."""
     print("🔌 WebSocket connected")
@@ -777,46 +834,54 @@ def handle_ws(ws):
 
     transcript_buf = []
     speech_final = False
+    buf_lock = threading.Lock()  # Deepgram callbacks fire on their own thread
 
     if dg_conn:
         from deepgram.core.events import EventType
         def on_message(msg):
             nonlocal speech_final
-            if hasattr(msg, "channel") and msg.channel:
-                text = msg.channel.alternatives[0].transcript
-                if text.strip():
-                    transcript_buf.append(text)
-                    if getattr(msg, "is_final", False):
-                        speech_final = True
+            with buf_lock:
+                if _accumulate_stt_message(msg, transcript_buf):
+                    speech_final = True
         dg_conn.on(EventType.MESSAGE, on_message)
 
     try:
+        authenticated = False
         while True:
             data = ws.receive(timeout=30)
             if data is None:
-                break
+                continue  # receive timeout (silence/hold) — keep the session alive
             msg = json.loads(data)
             if msg["event"] == "start":
+                params = msg["start"].get("customParameters") or {}
+                if not _redeem_stream_token(params.get("token"), msg["start"].get("callSid")):
+                    print(f"⛔ /ws/call rejected: missing/invalid stream token ({msg['start'].get('callSid')})")
+                    break
+                authenticated = True
                 stream_sid = msg["start"]["streamSid"]
                 call_sid = msg["start"]["callSid"]
             elif msg["event"] == "media":
-                audio = base64.b64decode(msg["media"]["payload"])
-                if dg_conn:
-                    dg_conn.send_media(audio)
+                # Gate on auth: Twilio always sends start first, so only a
+                # direct (unauthenticated) connection hits this before start —
+                # don't let it burn STT quota.
+                if authenticated and dg_conn:
+                    dg_conn.send_media(base64.b64decode(msg["media"]["payload"]))
             elif msg["event"] == "stop":
                 break
 
-            if speech_final and stream_sid:
-                full_text = " ".join(transcript_buf).strip()
-                transcript_buf.clear()
-                speech_final = False
-                if full_text and len(full_text) > 2:
-                    print(f"💬 User: {full_text}")
-                    reply = get_llm_response(call_sid or "ws", full_text)
-                    print(f"🤖 AI: {reply}")
-                    audio = synthesize_speech(reply)
-                    if audio:
-                        send_audio_to_ws(ws, stream_sid, audio)
+            full_text = ""
+            with buf_lock:
+                if speech_final and stream_sid:
+                    full_text = " ".join(transcript_buf).strip()
+                    transcript_buf.clear()
+                    speech_final = False
+            if full_text and len(full_text) > 2:
+                print(f"💬 User: {full_text}")
+                reply = get_llm_response(call_sid or "ws", full_text)
+                print(f"🤖 AI: {reply}")
+                audio = synthesize_speech(reply)
+                if audio:
+                    send_audio_to_ws(ws, stream_sid, audio)
     except Exception as e:
         print(f"❌ WS error: {e}")
     finally:
@@ -824,14 +889,18 @@ def handle_ws(ws):
             dg_conn.close()
         print("🔌 WebSocket closed")
 
-import time as _time
+
+# Registered via call (not decorator): flask-sock's route decorator returns
+# None, which would rebind handle_ws and make it untestable.
+webhook_sock.route("/ws/call")(handle_ws)
+
 _health_cache = {"data": None, "ts": 0}
 _HEALTH_TTL = 30  # seconds
 
 @webhook_app.route("/health", methods=["GET"])
 @dashboard_app.route("/health", methods=["GET"])
 def health():
-    now = _time.time()
+    now = time.time()
     if _health_cache["data"] and now - _health_cache["ts"] < _HEALTH_TTL:
         return jsonify(_health_cache["data"])
     backend = get_agent_backend()
@@ -841,7 +910,8 @@ def health():
         "status": "ok",
         "twilio": bool(TWILIO_SID),
         "deepgram": bool(DEEPGRAM_KEY),
-        "agent_backend": AGENT_PROVIDER or "auto",
+        # Read live so a settings change is reflected without a restart
+        "agent_backend": env("AGENT_PROVIDER", DEFAULT_AGENT_PROVIDER) or "auto",
         "agent_ok": agent_health.get("ok", False),
         "agent_model": agent_health.get("model"),
         "voicemails": len(load_voicemails()),
@@ -1112,7 +1182,8 @@ def api_get_settings():
     result["_status"] = {
         "twilio": bool(TWILIO_SID),
         "deepgram": bool(DEEPGRAM_KEY),
-        "agent_backend": AGENT_PROVIDER or "auto",
+        # Read live so a settings change is reflected without a restart
+        "agent_backend": env("AGENT_PROVIDER", DEFAULT_AGENT_PROVIDER) or "auto",
         "agent_ok": agent_health.get("ok", False),
         "voice_engine": voice_engine.mode if voice_engine else "none",
     }
@@ -1136,6 +1207,18 @@ def api_get_settings():
     ]
     return jsonify(result)
 
+# Settings that change which agent backend get_agent_backend() builds; updating
+# any of them invalidates the cached singleton so the change applies to the
+# next call without a server restart.
+AGENT_BACKEND_KEYS = {
+    "AGENT_PROVIDER", "HERMES_GATEWAY_URL", "HERMES_GATEWAY_TOKEN", "HERMES_MODEL_OVERRIDE",
+    "LLM_PROVIDER", "LLM_MODEL", "LLM_BASE_URL_OVERRIDE", "LLM_API_KEY_OVERRIDE",
+    "LLM_MODEL_OVERRIDE", "OLLAMA_BASE_URL", "LMSTUDIO_BASE_URL",
+    "XIAOMI_API_KEY", "XIAOMI_BASE_URL", "OPENAI_API_KEY", "OPENAI_BASE_URL",
+    "OPENROUTER_API_KEY", "OPENROUTER_BASE_URL",
+}
+
+
 @dashboard_app.route("/api/settings", methods=["POST"])
 def api_update_settings():
     data = request.json or {}
@@ -1150,6 +1233,13 @@ def api_update_settings():
             else:
                 update_setting(key, str(value))
                 updated.append(key)
+    if AGENT_BACKEND_KEYS.intersection(updated) or AGENT_BACKEND_KEYS.intersection(deleted):
+        reset_agent_backend()
+        _health_cache["ts"] = 0  # next /health re-probes the new backend
+    if "DASHBOARD_TOKEN" in updated or "DASHBOARD_TOKEN" in deleted:
+        # The schema hint promises this: changing the token signs out
+        # existing dashboard sessions (auth itself reads the token live).
+        dashboard_sessions.clear()
     return jsonify({"status": "ok", "updated": updated, "deleted": deleted})
 
 @dashboard_app.route("/api/models", methods=["GET"])
@@ -1179,7 +1269,8 @@ def list_models():
 
 @dashboard_app.route("/export/zip", methods=["GET"])
 def export_zip():
-    import zipfile, io
+    import zipfile
+    import io
     voicemails = load_voicemails()
     if not voicemails:
         return jsonify({"error": "No voicemails to export"}), 404
@@ -1207,7 +1298,7 @@ def export_zip():
 @dashboard_app.route("/export/transcripts", methods=["GET"])
 def export_transcripts():
     voicemails = load_voicemails()
-    lines = [f"Dialtone — Voicemail Transcripts", f"Exported: {datetime.now().isoformat()}", "=" * 50, ""]
+    lines = ["Dialtone — Voicemail Transcripts", f"Exported: {datetime.now().isoformat()}", "=" * 50, ""]
     for vm in voicemails:
         caller = vm.get("from", "unknown").replace("+", "")
         lines.append(f"From: {caller}")
@@ -1268,7 +1359,6 @@ def install_provider():
     
     # Run install in background thread
     def do_install():
-        import subprocess
         try:
             result = subprocess.run(
                 install_cmd.split(),
@@ -1307,7 +1397,7 @@ def run_dashboard():
 if __name__ == "__main__":
     init_voice_engine()
 
-    print(f"📞 Dialtone — AI Phone Agent")
+    print("📞 Dialtone — AI Phone Agent")
     print(f"   Company: {COMPANY_NAME}")
     backend = get_agent_backend()
     agent_health = backend.health_check()

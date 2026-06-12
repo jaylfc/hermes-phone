@@ -30,7 +30,8 @@ class TestApiSettings:
         assert data["WEBHOOK_PORT"] == "5050"
 
     def test_update_accepts_overrides(self, monkeypatch, tmp_path):
-        envf = tmp_path / ".env"; envf.write_text("")
+        envf = tmp_path / ".env"
+        envf.write_text("")
         monkeypatch.setattr(server, "ENV_FILE", envf)
         monkeypatch.setattr(server, "DASHBOARD_TOKEN", "")
         c = server.dashboard_app.test_client()
@@ -49,3 +50,37 @@ class TestLiveToggle:
         # disabled live → accepted, no restart
         monkeypatch.setenv("VALIDATE_TWILIO_SIGNATURE", "false")
         assert webhook_client.post("/voice/status", data={"CallSid": "CA1"}).status_code == 204
+
+
+class TestBackendInvalidation:
+    """Updating an agent-affecting setting must drop the cached backend (#72/PR review)."""
+
+    def _client(self, monkeypatch, tmp_path):
+        envf = tmp_path / ".env"
+        envf.write_text("")
+        monkeypatch.setattr(server, "ENV_FILE", envf)
+        monkeypatch.setattr(server, "DASHBOARD_TOKEN", "")
+        return server.dashboard_app.test_client()
+
+    def test_agent_key_resets_cached_backend(self, monkeypatch, tmp_path):
+        import agents
+        monkeypatch.setenv("AGENT_PROVIDER", "ollama")  # registered for teardown restore
+        c = self._client(monkeypatch, tmp_path)
+        agents._backend = object()  # simulate a cached backend
+        try:
+            assert c.post("/api/settings", json={"AGENT_PROVIDER": "openai"}).status_code == 200
+            assert agents._backend is None
+        finally:
+            agents.reset_agent_backend()
+
+    def test_unrelated_key_keeps_cached_backend(self, monkeypatch, tmp_path):
+        import agents
+        monkeypatch.setenv("COMPANY_NAME", "Original")
+        c = self._client(monkeypatch, tmp_path)
+        sentinel = object()
+        agents._backend = sentinel
+        try:
+            assert c.post("/api/settings", json={"COMPANY_NAME": "Acme"}).status_code == 200
+            assert agents._backend is sentinel
+        finally:
+            agents.reset_agent_backend()
